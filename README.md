@@ -24,7 +24,7 @@ A macOS notch widget that monitors [Claude Code](https://docs.anthropic.com/en/d
 ### 1. Build and run
 
 ```bash
-git clone https://github.com/your-username/ClaudeNotch.git
+git clone https://github.com/hezi/ClaudeNotch.git
 cd ClaudeNotch
 open ClaudeNotch.xcodeproj
 # Build and run (Cmd+R) in Xcode
