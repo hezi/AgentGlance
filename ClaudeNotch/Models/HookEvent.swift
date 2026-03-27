@@ -26,7 +26,10 @@ struct HookPayload: Codable {
     // Session end
     let reason: String?
 
-    init(session_id: String, cwd: String, hook_event_name: String, tool_name: String? = nil, tool_input: JSONValue? = nil, notification_type: String? = nil, reason: String? = nil) {
+    // Session metadata
+    let permission_mode: String?
+
+    init(session_id: String, cwd: String, hook_event_name: String, tool_name: String? = nil, tool_input: JSONValue? = nil, notification_type: String? = nil, reason: String? = nil, permission_mode: String? = nil) {
         self.session_id = session_id
         self.cwd = cwd
         self.hook_event_name = hook_event_name
@@ -34,6 +37,7 @@ struct HookPayload: Codable {
         self.tool_input = tool_input
         self.notification_type = notification_type
         self.reason = reason
+        self.permission_mode = permission_mode
     }
 
     static func test(sessionId: String, cwd: String, eventName: String, toolName: String? = nil) -> HookPayload {
@@ -49,6 +53,7 @@ struct HookPayload: Codable {
         tool_input = try container.decodeIfPresent(JSONValue.self, forKey: .tool_input)
         notification_type = try container.decodeIfPresent(String.self, forKey: .notification_type)
         reason = try container.decodeIfPresent(String.self, forKey: .reason)
+        permission_mode = try container.decodeIfPresent(String.self, forKey: .permission_mode)
     }
 }
 

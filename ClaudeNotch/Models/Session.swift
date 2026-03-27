@@ -28,6 +28,9 @@ final class Session: Identifiable {
     /// Optional display name from --resume flag
     var name: String?
 
+    /// Permission mode reported by Claude Code (e.g. "default", "plan", "auto", "acceptEdits")
+    var permissionMode: String?
+
     /// Terminal info for navigation
     var tty: String?
     var terminalBundleId: String?
@@ -72,5 +75,63 @@ final class Session: Identifiable {
         self.state = .idle
         self.lastActivity = Date()
         self.startTime = Date()
+    }
+}
+
+// MARK: - Permission Mode Display
+
+import SwiftUI
+
+/// Colors match the Claude Code TUI theme (extracted from binary)
+enum PermissionModeStyle {
+    case plan, auto, acceptEdits, bypass, dontAsk
+
+    init?(_ mode: String?) {
+        switch mode {
+        case "plan": self = .plan
+        case "auto": self = .auto
+        case "acceptEdits": self = .acceptEdits
+        case "bypassPermissions": self = .bypass
+        case "dontAsk": self = .dontAsk
+        default: return nil  // "default" and unknown → no badge
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .plan: "Plan"
+        case .auto: "Auto"
+        case .acceptEdits: "Accept"
+        case .bypass: "Bypass"
+        case .dontAsk: "DontAsk"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .plan:        Color(red: 0/255, green: 102/255, blue: 102/255)   // teal
+        case .auto:        Color(red: 150/255, green: 108/255, blue: 30/255)  // amber
+        case .acceptEdits: Color(red: 135/255, green: 0/255, blue: 255/255)   // purple
+        case .bypass:      Color(red: 171/255, green: 43/255, blue: 63/255)   // red
+        case .dontAsk:     Color(red: 171/255, green: 43/255, blue: 63/255)   // red
+        }
+    }
+}
+
+/// Reusable capsule badge for permission mode — returns nil view for "default" mode
+struct ModeBadge: View {
+    let mode: String?
+
+    var body: some View {
+        if let style = PermissionModeStyle(mode) {
+            Text(style.label)
+                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                .foregroundStyle(style.color)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 1)
+                .background(
+                    Capsule().fill(style.color.opacity(0.15))
+                )
+        }
     }
 }

@@ -58,6 +58,7 @@ private struct GeneralPane: View {
     @AppStorage(Constants.UserDefaultsKeys.sleepPreventionEnabled) private var sleepPrevention = true
     @AppStorage(Constants.UserDefaultsKeys.soundEnabled) private var soundEnabled = true
     @AppStorage(Constants.UserDefaultsKeys.autoExpandOnApproval) private var autoExpand = false
+    @AppStorage(Constants.UserDefaultsKeys.showAllApprovals) private var showAllApprovals = false
     @State private var launchAtLogin = false
 
     var body: some View {
@@ -69,6 +70,7 @@ private struct GeneralPane: View {
                     }
                 Toggle("Play sound on notifications", isOn: $soundEnabled)
                 Toggle("Auto-expand notch on approval requests", isOn: $autoExpand)
+                Toggle("Show all queued approvals at once", isOn: $showAllApprovals)
             }
 
             Section("Startup") {
@@ -99,6 +101,8 @@ private struct AppearancePane: View {
     @AppStorage(Constants.UserDefaultsKeys.showTextInNotch) private var showText = true
     @AppStorage(Constants.UserDefaultsKeys.fitNotchToText) private var fitToText = false
     @AppStorage(Constants.UserDefaultsKeys.notchFontScale) private var fontScaleRaw = NotchFontScale.m.rawValue
+    @AppStorage(Constants.UserDefaultsKeys.liquidGlass) private var liquidGlass = false
+    @AppStorage(Constants.UserDefaultsKeys.glassFrost) private var glassFrost = 0.3
 
     private var fontScale: NotchFontScale {
         NotchFontScale(rawValue: fontScaleRaw) ?? .m
@@ -109,6 +113,13 @@ private struct AppearancePane: View {
             Section("Notch Pill") {
                 Toggle("Show status text", isOn: $showText)
                 Toggle("Fit width to text", isOn: $fitToText)
+                Toggle("Liquid Glass", isOn: $liquidGlass)
+                if liquidGlass {
+                    LabeledContent("Frost") {
+                        Slider(value: $glassFrost, in: 0...0.7, step: 0.05)
+                            .frame(width: 160)
+                    }
+                }
             }
 
             Section("Font Size") {
@@ -122,7 +133,7 @@ private struct AppearancePane: View {
             }
 
             Section("Preview") {
-                NotchPreview(fontScale: fontScale, fitToText: fitToText, showText: showText)
+                NotchPreview(fontScale: fontScale, fitToText: fitToText, showText: showText, liquidGlass: liquidGlass, glassFrost: glassFrost)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 4)
             }
@@ -137,6 +148,12 @@ private struct NotchPreview: View {
     let fontScale: NotchFontScale
     let fitToText: Bool
     let showText: Bool
+    let liquidGlass: Bool
+    let glassFrost: Double
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var fg: Color { colorScheme == .dark ? .white : .black }
+    private var bg: Color { colorScheme == .dark ? .black : .white }
 
     private func font(size: CGFloat, weight: Font.Weight = .regular, design: Font.Design = .default) -> Font {
         if fontScale == .system {
@@ -167,7 +184,7 @@ private struct NotchPreview: View {
             if showText {
                 Text("Running Bash...")
                     .font(font(size: fontScale.bodySize, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.8))
+                    .foregroundStyle(fg.opacity(0.8))
                     .lineLimit(1)
             }
         }
@@ -175,11 +192,7 @@ private struct NotchPreview: View {
         .frame(height: fontScale.barHeight)
         .frame(width: fitToText ? nil : 200)
         .fixedSize(horizontal: fitToText, vertical: false)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(.black)
-                .shadow(color: .green.opacity(0.3), radius: 8)
-        )
+        .modifier(PreviewGlassModifier(cornerRadius: 18, glowColor: .green, useGlass: liquidGlass, fillColor: bg, frost: glassFrost))
     }
 
     private var expandedPreview: some View {
@@ -205,11 +218,7 @@ private struct NotchPreview: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(.black)
-                .shadow(color: .yellow.opacity(0.2), radius: 8)
-        )
+        .modifier(PreviewGlassModifier(cornerRadius: 20, glowColor: .yellow, useGlass: liquidGlass, fillColor: bg, frost: glassFrost))
         .frame(width: 340)
     }
 
@@ -221,11 +230,11 @@ private struct NotchPreview: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(name)
                     .font(font(size: fontScale.bodySize, weight: .medium))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(fg)
                     .lineLimit(1)
                 Text(detail)
                     .font(font(size: fontScale.detailSize))
-                    .foregroundStyle(.white.opacity(0.45))
+                    .foregroundStyle(fg.opacity(0.45))
                     .lineLimit(1)
             }
 
@@ -233,13 +242,13 @@ private struct NotchPreview: View {
 
             Text(time)
                 .font(font(size: fontScale.monoSize, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.35))
+                .foregroundStyle(fg.opacity(0.35))
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(.white.opacity(0.06))
+                .fill(fg.opacity(0.06))
         )
     }
 
@@ -250,7 +259,7 @@ private struct NotchPreview: View {
                     .frame(width: 8, height: 8)
                 Text("~/Projects/MyApp")
                     .font(font(size: fontScale.bodySize, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(fg)
                 Spacer()
                 Text("Bash")
                     .font(font(size: fontScale.badgeSize, weight: .medium, design: .monospaced))
@@ -262,14 +271,14 @@ private struct NotchPreview: View {
 
             Text("rm -rf node_modules && npm install")
                 .font(font(size: fontScale.monoSize, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(fg.opacity(0.7))
                 .lineLimit(1)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 4)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
                     RoundedRectangle(cornerRadius: 5, style: .continuous)
-                        .fill(.white.opacity(0.04))
+                        .fill(fg.opacity(0.04))
                 )
 
             HStack(spacing: 6) {
@@ -295,7 +304,7 @@ private struct NotchPreview: View {
 
                 Text("Skip")
                     .font(font(size: fontScale.badgeSize, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(fg.opacity(0.4))
             }
         }
         .padding(.horizontal, 10)
@@ -318,6 +327,49 @@ private struct NotchPreview: View {
         case .ready: PulseView(color: .red)
         case .idle: Circle().fill(.gray)
         case .complete: Image(systemName: "checkmark.circle.fill").font(.system(size: 10)).foregroundStyle(.green)
+        }
+    }
+}
+
+private struct PreviewGlassModifier: ViewModifier {
+    let cornerRadius: CGFloat
+    let glowColor: Color
+    let useGlass: Bool
+    var fillColor: Color = .black
+    var frost: Double = 0.3
+
+    func body(content: Content) -> some View {
+        if useGlass {
+            if #available(macOS 26, *) {
+                content
+                    .background(
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .fill(fillColor.opacity(frost))
+                            .shadow(color: glowColor.opacity(0.2), radius: 8)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                    .glassEffect(in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            } else {
+                content
+                    .background(
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                            .shadow(color: glowColor.opacity(0.2), radius: 8)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .fill(fillColor.opacity(frost))
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            }
+        } else {
+            content
+                .background(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(fillColor)
+                        .shadow(color: glowColor.opacity(0.3), radius: 8)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         }
     }
 }
@@ -419,3 +471,23 @@ private struct PermissionsPane: View {
         .formStyle(.grouped)
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+#Preview("Settings") {
+    SettingsView(appState: AppState())
+        .frame(width: 580, height: 400)
+}
+
+#Preview("ModeBadge") {
+    HStack(spacing: 8) {
+        ModeBadge(mode: "plan")
+        ModeBadge(mode: "auto")
+        ModeBadge(mode: "acceptEdits")
+        ModeBadge(mode: "bypassPermissions")
+        ModeBadge(mode: "default")
+    }
+    .padding()
+}
+#endif

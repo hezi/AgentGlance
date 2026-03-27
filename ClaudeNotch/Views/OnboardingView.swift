@@ -229,3 +229,11 @@ struct OnboardingView: View {
         NSWorkspace.shared.open(url)
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+#Preview("Onboarding") {
+    OnboardingView(appState: AppState())
+}
+#endif
