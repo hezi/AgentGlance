@@ -1,8 +1,15 @@
 import AppKit
 import SwiftUI
+import Combine
+
+/// Shared geometry that the SwiftUI overlay writes to and the hosting view reads from.
+final class NotchGeometry: ObservableObject {
+    /// The pill's frame in the hosting view's coordinate system
+    @Published var pillRect: CGRect = .zero
+}
 
 final class NotchWindow: NSPanel {
-    private var hostingView: NSHostingView<AnyView>!
+    let geometry = NotchGeometry()
 
     init(contentView: some View) {
         super.init(
@@ -22,10 +29,11 @@ final class NotchWindow: NSPanel {
         self.animationBehavior = .none
         self.ignoresMouseEvents = false
 
-        // Use a large fixed window so SwiftUI content can grow/shrink freely
-        // The actual visible area is controlled by the SwiftUI view's background
-        let hostingView = NSHostingView(rootView: AnyView(contentView))
-        self.hostingView = hostingView
+        let wrappedView = contentView
+            .environmentObject(geometry)
+
+        let hostingView = ClickThroughHostingView(rootView: AnyView(wrappedView))
+        hostingView.geometry = geometry
         self.contentView = hostingView
 
         positionAtNotch()
@@ -35,10 +43,8 @@ final class NotchWindow: NSPanel {
         guard let screen = NSScreen.main else { return }
         let screenFrame = screen.frame
 
-        // Make the window wide and tall enough for expanded content
-        // Centered at top of screen — SwiftUI content anchors to top-center
-        let windowWidth: CGFloat = 400
-        let windowHeight: CGFloat = 300
+        let windowWidth: CGFloat = 500
+        let windowHeight: CGFloat = 400
 
         let x = screenFrame.midX - windowWidth / 2
         let y = screenFrame.maxY - windowHeight
@@ -48,4 +54,33 @@ final class NotchWindow: NSPanel {
 
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
+}
+
+/// Hosting view that passes clicks through to windows behind when the click
+/// lands outside the pill's reported bounds.
+final class ClickThroughHostingView: NSHostingView<AnyView> {
+    weak var geometry: NotchGeometry?
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        guard let geometry else {
+            // No geometry yet — allow all events so SwiftUI can render
+            return super.hitTest(point)
+        }
+
+        let pillRect = geometry.pillRect
+        if pillRect.isEmpty {
+            // Geometry not reported yet — allow all events
+            return super.hitTest(point)
+        }
+
+        // Add padding for hover detection near edges
+        let hitRect = pillRect.insetBy(dx: -12, dy: -12)
+
+        if hitRect.contains(point) {
+            return super.hitTest(point)
+        }
+
+        // Outside the pill — pass through to windows behind
+        return nil
+    }
 }
