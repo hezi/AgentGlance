@@ -45,16 +45,13 @@ struct MenuBarView: View {
                     appState.sendTestEvent("PreToolUse", toolName: "Edit")
                 }
                 Button("Awaiting Approval (Bash)") {
-                    appState.sendTestEvent("PreToolUse", toolName: "Bash")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        appState.sendTestNotification(type: "permission_prompt")
-                    }
+                    appState.sendTestApproval(toolName: "Bash")
                 }
                 Button("Awaiting Approval (Edit)") {
-                    appState.sendTestEvent("PreToolUse", toolName: "Edit")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        appState.sendTestNotification(type: "permission_prompt")
-                    }
+                    appState.sendTestApproval(toolName: "Edit")
+                }
+                Button("Question") {
+                    appState.sendTestQuestion()
                 }
                 Divider()
                 Button("Needs Input") {

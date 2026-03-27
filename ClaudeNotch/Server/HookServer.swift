@@ -4,6 +4,15 @@ import os
 
 private let logger = Logger(subsystem: "com.claudenotch", category: "HookServer")
 
+/// A parsed question from AskUserQuestion tool_input
+struct ParsedQuestion: Identifiable {
+    let id = UUID()
+    let questionText: String
+    let header: String
+    let options: [String]
+    let multiSelect: Bool
+}
+
 /// Represents a pending permission decision — the connection is held open until resolved
 struct PendingDecision: Identifiable {
     let id: UUID
@@ -15,6 +24,36 @@ struct PendingDecision: Identifiable {
     let receivedAt: Date
 
     var age: TimeInterval { Date().timeIntervalSince(receivedAt) }
+
+    /// Parsed questions for AskUserQuestion tool calls
+    var questions: [ParsedQuestion] {
+        guard toolName == "AskUserQuestion",
+              let toolInput,
+              case .object(let obj) = toolInput,
+              case .array(let questionsArr) = obj["questions"] else { return [] }
+
+        return questionsArr.compactMap { q -> ParsedQuestion? in
+            guard case .object(let qObj) = q,
+                  case .string(let text) = qObj["question"],
+                  case .string(let header) = qObj["header"] else { return nil }
+
+            var optionLabels: [String] = []
+            if case .array(let opts) = qObj["options"] {
+                for opt in opts {
+                    if case .object(let optObj) = opt,
+                       case .string(let label) = optObj["label"] {
+                        optionLabels.append(label)
+                    }
+                }
+            }
+
+            let multi: Bool
+            if case .bool(let m) = qObj["multiSelect"] { multi = m }
+            else { multi = false }
+
+            return ParsedQuestion(questionText: text, header: header, options: optionLabels, multiSelect: multi)
+        }
+    }
 }
 
 @Observable
@@ -191,6 +230,73 @@ final class HookServer {
         onDecision?(sessionId, true)
     }
 
+    /// Answer an AskUserQuestion with selected options
+    func answerQuestion(sessionId: String, answers: [String: String]) {
+        guard let pending = dequeue(sessionId: sessionId) else { return }
+
+        // Build the response using Codable
+        struct QuestionOption: Encodable {
+            let label: String
+            let description: String?
+        }
+        struct Question: Encodable {
+            let question: String
+            let header: String
+            let options: [QuestionOption]
+            let multiSelect: Bool
+        }
+        struct UpdatedInput: Encodable {
+            let questions: [Question]
+            let answers: [String: String]
+        }
+        struct Decision: Encodable {
+            let behavior = "allow"
+            let updatedInput: UpdatedInput
+        }
+        struct HookOutput: Encodable {
+            let hookEventName = "PermissionRequest"
+            let decision: Decision
+        }
+        struct Response: Encodable {
+            let hookSpecificOutput: HookOutput
+        }
+
+        // Rebuild questions from the parsed data
+        let parsedQuestions = pending.questions
+        let questions = parsedQuestions.map { q in
+            Question(
+                question: q.questionText,
+                header: q.header,
+                options: q.options.map { QuestionOption(label: $0, description: nil) },
+                multiSelect: q.multiSelect
+            )
+        }
+
+        let resp = Response(
+            hookSpecificOutput: HookOutput(
+                decision: Decision(
+                    updatedInput: UpdatedInput(questions: questions, answers: answers)
+                )
+            )
+        )
+
+        let body: String
+        if let data = try? JSONEncoder().encode(resp), let json = String(data: data, encoding: .utf8) {
+            body = json
+        } else {
+            // Fallback — just allow without answers, falls through to CLI
+            body = "{\"hookSpecificOutput\":{\"hookEventName\":\"PermissionRequest\",\"decision\":{\"behavior\":\"allow\"}}}"
+        }
+
+        logger.info("Answered question for session \(sessionId): \(answers)")
+
+        let response = HTTPParser.okResponse(body: body)
+        pending.connection.send(content: response, completion: .contentProcessed { _ in
+            pending.connection.cancel()
+        })
+        onDecision?(sessionId, true)
+    }
+
     /// Deny a pending permission request
     func denyPermission(sessionId: String, message: String = "Denied from Claude Notch") {
         guard let pending = dequeue(sessionId: sessionId) else { return }
@@ -363,11 +469,11 @@ final class HookServer {
         })
     }
 
-    // MARK: - Preview Support
+    // MARK: - Mock Pending Decisions (for previews and Test Events)
 
-    #if DEBUG
-    /// Queue a fake pending decision for previews (no real connection).
-    func addPreviewPending(sessionId: String, toolName: String, toolInput: JSONValue? = nil, toolSummary: String? = nil) {
+    /// Queue a mock pending decision without a real HTTP connection.
+    /// Allow/Deny will silently no-op on the dummy connection.
+    func addMockPending(sessionId: String, toolName: String, toolInput: JSONValue? = nil, toolSummary: String? = nil) {
         let dummy = NWConnection(host: "127.0.0.1", port: 1, using: .tcp)
         let pending = PendingDecision(
             id: UUID(),
@@ -382,5 +488,4 @@ final class HookServer {
         queue.append(pending)
         pendingDecisions[sessionId] = queue
     }
-    #endif
 }

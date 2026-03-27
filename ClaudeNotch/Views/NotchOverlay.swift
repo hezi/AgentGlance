@@ -125,13 +125,8 @@ struct NotchOverlay: View {
                 appState.shouldAutoExpand = false
             }
         }
-        // Collapse auto-expand when there's no longer an approval pending
-        .onChange(of: displayState) { _, newState in
-            if isAutoExpanded && newState != .awaitingApproval {
-                isAutoExpanded = false
-                isExpanded = false
-            }
-        }
+        // Auto-expand stays open until the mouse leaves the pill area.
+        // The onHover handler above handles collapsing when hovering = false.
     }
 
     // MARK: - Collapsed bar
@@ -459,83 +454,11 @@ struct NotchOverlay: View {
     // MARK: - Question Row (AskUserQuestion)
 
     private func questionRow(_ session: Session) -> some View {
-        let pending = hookServer.nextPending(for: session.id)
-        let question = pending?.toolSummary ?? session.pendingToolSummary
-
-        return VStack(alignment: .leading, spacing: 6) {
-            // Header
-            Button { TerminalActivator.activate(session: session) } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "questionmark.bubble.fill")
-                        .font(scaledFont(size: fontScale.monoSize))
-                        .foregroundStyle(.blue)
-
-                    Text(session.projectName)
-                        .font(scaledFont(size: fontScale.bodySize, weight: .semibold))
-                        .foregroundStyle(fg)
-
-                    Image(systemName: "arrow.up.forward.app")
-                        .font(scaledFont(size: fontScale.badgeSize))
-                        .foregroundStyle(fg.opacity(0.25))
-
-                    Spacer()
-
-                    Text("Question")
-                        .font(scaledFont(size: fontScale.badgeSize, weight: .medium, design: .monospaced))
-                        .foregroundStyle(.blue.opacity(0.9))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(
-                            Capsule().fill(.blue.opacity(0.15))
-                        )
-                }
-            }
-            .buttonStyle(.plain)
-
-            // Question text
-            if let question {
-                Text(question)
-                    .font(scaledFont(size: fontScale.monoSize))
-                    .foregroundStyle(fg.opacity(0.85))
-                    .lineLimit(4)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 4)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 5, style: .continuous)
-                            .fill(fg.opacity(0.04))
-                    )
-            }
-
-            // Navigate to terminal to answer
-            Button {
-                TerminalActivator.activate(session: session)
-                hookServer.dismissPermission(sessionId: session.id)
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "arrow.up.forward.app")
-                        .font(scaledFont(size: fontScale.badgeSize, weight: .bold))
-                    Text("Answer in Terminal")
-                        .font(scaledFont(size: fontScale.monoSize, weight: .semibold))
-                }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(
-                    Capsule().fill(.blue.opacity(0.7))
-                )
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(.blue.opacity(0.06))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .strokeBorder(.blue.opacity(0.15), lineWidth: 0.5)
-                )
+        QuestionRowView(
+            session: session,
+            hookServer: hookServer,
+            fontScale: fontScale,
+            fg: fg
         )
     }
 
@@ -833,6 +756,232 @@ private struct NotchBackgroundModifier: ViewModifier {
     }
 }
 
+// MARK: - Question Row (interactive AskUserQuestion)
+
+struct QuestionRowView: View {
+    let session: Session
+    let hookServer: HookServer
+    let fontScale: NotchFontScale
+    let fg: Color
+
+    @State private var selections: [String: Set<String>] = [:]
+
+    private var pending: PendingDecision? {
+        hookServer.nextPending(for: session.id)
+    }
+
+    private var questions: [ParsedQuestion] {
+        pending?.questions ?? []
+    }
+
+    private func font(size: CGFloat, weight: Font.Weight = .regular, design: Font.Design = .default) -> Font {
+        if fontScale == .system {
+            switch weight {
+            case .semibold, .bold: return .subheadline.weight(weight)
+            case .medium: return .caption.weight(weight)
+            default: return .caption2
+            }
+        }
+        return .system(size: size, weight: weight, design: design)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            // Header
+            Button { TerminalActivator.activate(session: session) } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "questionmark.bubble.fill")
+                        .font(font(size: fontScale.monoSize))
+                        .foregroundStyle(.blue)
+
+                    Text(session.projectName)
+                        .font(font(size: fontScale.bodySize, weight: .semibold))
+                        .foregroundStyle(fg)
+
+                    Image(systemName: "arrow.up.forward.app")
+                        .font(font(size: fontScale.badgeSize))
+                        .foregroundStyle(fg.opacity(0.25))
+
+                    Spacer()
+
+                    Text("Question")
+                        .font(font(size: fontScale.badgeSize, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.blue.opacity(0.9))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(.blue.opacity(0.15)))
+                }
+            }
+            .buttonStyle(.plain)
+
+            // Questions with selectable options
+            if !questions.isEmpty {
+                ForEach(questions) { q in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(q.questionText)
+                            .font(font(size: fontScale.monoSize, weight: .medium))
+                            .foregroundStyle(fg.opacity(0.85))
+
+                        // Option chips
+                        FlowLayout(spacing: 4) {
+                            ForEach(q.options, id: \.self) { option in
+                                let isSelected = selections[q.questionText, default: []].contains(option)
+                                Button {
+                                    toggleSelection(question: q, option: option)
+                                } label: {
+                                    Text(option)
+                                        .font(font(size: fontScale.detailSize, weight: isSelected ? .semibold : .regular))
+                                        .foregroundStyle(isSelected ? .white : fg.opacity(0.7))
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                                .fill(isSelected ? .blue.opacity(0.7) : fg.opacity(0.06))
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                                .strokeBorder(isSelected ? .blue : fg.opacity(0.1), lineWidth: 0.5)
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .fill(fg.opacity(0.03))
+                    )
+                }
+            } else if let summary = pending?.toolSummary ?? session.pendingToolSummary {
+                // Fallback: show raw question text
+                Text(summary)
+                    .font(font(size: fontScale.monoSize))
+                    .foregroundStyle(fg.opacity(0.85))
+                    .lineLimit(4)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .fill(fg.opacity(0.04))
+                    )
+            }
+
+            // Action buttons
+            HStack(spacing: 6) {
+                if !questions.isEmpty && hasAnySelection {
+                    Button {
+                        submitAnswers()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark")
+                                .font(font(size: fontScale.badgeSize, weight: .bold))
+                            Text("Submit")
+                                .font(font(size: fontScale.monoSize, weight: .semibold))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Capsule().fill(.blue.opacity(0.7)))
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Spacer()
+
+                Button {
+                    TerminalActivator.activate(session: session)
+                    hookServer.dismissPermission(sessionId: session.id)
+                } label: {
+                    Text("Answer in Terminal")
+                        .font(font(size: fontScale.badgeSize, weight: .medium))
+                        .foregroundStyle(fg.opacity(0.4))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(.blue.opacity(0.06))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(.blue.opacity(0.15), lineWidth: 0.5)
+                )
+        )
+    }
+
+    private var hasAnySelection: Bool {
+        selections.values.contains { !$0.isEmpty }
+    }
+
+    private func toggleSelection(question: ParsedQuestion, option: String) {
+        var current = selections[question.questionText, default: []]
+        if question.multiSelect {
+            if current.contains(option) { current.remove(option) }
+            else { current.insert(option) }
+        } else {
+            current = [option]
+        }
+        selections[question.questionText] = current
+    }
+
+    private func submitAnswers() {
+        var answers: [String: String] = [:]
+        for q in questions {
+            let selected = selections[q.questionText, default: []]
+            if !selected.isEmpty {
+                // For multi-select, join with comma; for single, just the value
+                answers[q.questionText] = selected.sorted().joined(separator: ",")
+            }
+        }
+        hookServer.answerQuestion(sessionId: session.id, answers: answers)
+    }
+}
+
+/// Simple flow layout for option chips
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 4
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let result = arrange(proposal: proposal, subviews: subviews)
+        return result.size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let result = arrange(proposal: proposal, subviews: subviews)
+        for (index, position) in result.positions.enumerated() {
+            subviews[index].place(at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y), proposal: .unspecified)
+        }
+    }
+
+    private func arrange(proposal: ProposedViewSize, subviews: Subviews) -> (size: CGSize, positions: [CGPoint]) {
+        let maxWidth = proposal.width ?? .infinity
+        var positions: [CGPoint] = []
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x + size.width > maxWidth && x > 0 {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            positions.append(CGPoint(x: x, y: y))
+            rowHeight = max(rowHeight, size.height)
+            x += size.width + spacing
+        }
+
+        return (CGSize(width: maxWidth, height: y + rowHeight), positions)
+    }
+}
+
 // MARK: - Pill Frame Preference Key
 
 private struct PillFrameKey: PreferenceKey {
@@ -931,7 +1080,7 @@ private func previewSessionManager(_ events: [(id: String, cwd: String, event: S
          input: .object(["command": .string("rm -rf node_modules && npm install")])),
     ])
     let hs = HookServer()
-    hs.addPreviewPending(sessionId: "s1", toolName: "Bash",
+    hs.addMockPending(sessionId: "s1", toolName: "Bash",
                          toolInput: .object(["command": .string("rm -rf node_modules && npm install")]),
                          toolSummary: "rm -rf node_modules && npm install")
     return NotchOverlay(sessionManager: sm, hookServer: hs, appState: AppState())
@@ -956,7 +1105,7 @@ private func previewSessionManager(_ events: [(id: String, cwd: String, event: S
         (id: "s3", cwd: "/Users/demo/Projects/Docs", event: "Stop", tool: nil, input: nil),
     ])
     let hs = HookServer()
-    hs.addPreviewPending(sessionId: "s2", toolName: "Bash",
+    hs.addMockPending(sessionId: "s2", toolName: "Bash",
                          toolInput: .object(["command": .string("docker compose up -d")]),
                          toolSummary: "docker compose up -d")
     return NotchOverlay(sessionManager: sm, hookServer: hs, appState: AppState())

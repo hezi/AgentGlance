@@ -158,6 +158,74 @@ final class AppState {
         sessionManager.handleEvent(payload)
     }
 
+    /// Simulate a full approval request: sets the session state and queues a mock
+    /// PendingDecision so Allow/Deny buttons appear in the UI.
+    func sendTestApproval(toolName: String) {
+        var toolInput: JSONValue? = nil
+        var toolSummary: String? = nil
+        switch toolName {
+        case "Bash":
+            toolInput = .object(["command": .string("npm run build && npm test")])
+            toolSummary = "npm run build && npm test"
+        case "Edit":
+            toolInput = .object(["file_path": .string("/Users/demo/Projects/MyApp/src/components/Header.swift")])
+            toolSummary = ".../components/Header.swift"
+        case "Write":
+            toolInput = .object(["file_path": .string("/Users/demo/Projects/MyApp/README.md")])
+            toolSummary = ".../MyApp/README.md"
+        default:
+            break
+        }
+
+        let payload = HookPayload(
+            session_id: "test-session",
+            cwd: "/Users/demo/Projects/MyApp",
+            hook_event_name: "PermissionRequest",
+            tool_name: toolName,
+            tool_input: toolInput
+        )
+        sessionManager.handleEvent(payload)
+        hookServer.addMockPending(
+            sessionId: "test-session",
+            toolName: toolName,
+            toolInput: toolInput,
+            toolSummary: toolSummary
+        )
+    }
+
+    func sendTestQuestion() {
+        let toolInput: JSONValue = .object([
+            "questions": .array([
+                .object([
+                    "question": .string("Which database should we use?"),
+                    "header": .string("Database"),
+                    "options": .array([
+                        .object(["label": .string("PostgreSQL"), "description": .string("Relational, battle-tested")]),
+                        .object(["label": .string("SQLite"), "description": .string("Embedded, zero config")]),
+                        .object(["label": .string("MongoDB"), "description": .string("Document store")])
+                    ]),
+                    "multiSelect": .bool(false)
+                ])
+            ]),
+            "answers": .object([:])
+        ])
+
+        let payload = HookPayload(
+            session_id: "test-session",
+            cwd: "/Users/demo/Projects/MyApp",
+            hook_event_name: "PermissionRequest",
+            tool_name: "AskUserQuestion",
+            tool_input: toolInput
+        )
+        sessionManager.handleEvent(payload)
+        hookServer.addMockPending(
+            sessionId: "test-session",
+            toolName: "AskUserQuestion",
+            toolInput: toolInput,
+            toolSummary: "Which database should we use?"
+        )
+    }
+
     // MARK: - Sound
 
     private func playAlertSound() {
