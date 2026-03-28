@@ -108,6 +108,10 @@ private struct AppearancePane: View {
     @AppStorage(Constants.UserDefaultsKeys.expandedWidth) private var expandedWidth = 340.0
     @AppStorage(Constants.UserDefaultsKeys.appearanceMode) private var appearanceMode = "system"
 
+    private var maxExpandedWidth: Double {
+        Double(NSScreen.main?.frame.width ?? 1920) * 0.25
+    }
+
     private var fontScale: NotchFontScale {
         NotchFontScale(rawValue: fontScaleRaw) ?? .m
     }
@@ -137,7 +141,7 @@ private struct AppearancePane: View {
 
             Section("Expanded View") {
                 LabeledContent("Width: \(Int(expandedWidth))px") {
-                    Slider(value: $expandedWidth, in: 280...500, step: 10)
+                    Slider(value: $expandedWidth, in: 280...maxExpandedWidth, step: 10)
                         .frame(width: 180)
                 }
             }
