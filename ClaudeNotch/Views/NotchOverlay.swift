@@ -11,6 +11,7 @@ struct NotchOverlay: View {
     @AppStorage(Constants.UserDefaultsKeys.liquidGlass) private var liquidGlass = false
     @AppStorage(Constants.UserDefaultsKeys.glassFrost) private var glassFrost = 0.3
     @AppStorage(Constants.UserDefaultsKeys.showAllApprovals) private var showAllApprovals = false
+    @AppStorage(Constants.UserDefaultsKeys.expandedWidth) private var expandedWidth = 340.0
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var geometry: NotchGeometry
 
@@ -67,19 +68,18 @@ struct NotchOverlay: View {
                 .padding(.top, 4)
                 .background(
                     GeometryReader { geo in
-                        Color.clear.preference(
-                            key: PillFrameKey.self,
-                            value: geo.frame(in: .named("window"))
-                        )
+                        Color.clear
+                            .onAppear {
+                                geometry.pillRect = geo.frame(in: .global)
+                            }
+                            .onChange(of: geo.size) { _, _ in
+                                geometry.pillRect = geo.frame(in: .global)
+                            }
                     }
                 )
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .coordinateSpace(name: "window")
-        .onPreferenceChange(PillFrameKey.self) { rect in
-            geometry.pillRect = rect
-        }
     }
 
     private var notchContent: some View {
@@ -91,7 +91,7 @@ struct NotchOverlay: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .frame(width: isExpanded ? 340 : (fitToText ? nil : notchWidth))
+        .frame(width: isExpanded ? expandedWidth : (fitToText ? nil : notchWidth))
         .fixedSize(horizontal: fitToText && !isExpanded, vertical: false)
         .modifier(NotchBackgroundModifier(
             cornerRadius: isExpanded ? 20 : 18,
@@ -150,7 +150,7 @@ struct NotchOverlay: View {
                 .foregroundStyle(fg.opacity(0.8))
                 .lineLimit(1)
             } else {
-                Image(systemName: "terminal.fill")
+                Image(systemName: "terminal")
                     .font(scaledFont(size: fontScale.detailSize))
                     .foregroundStyle(fg.opacity(0.35))
                 Text("Claude Notch")
@@ -195,45 +195,63 @@ struct NotchOverlay: View {
     }
 
     private func sessionRow(_ session: Session) -> some View {
-        Button {
-            TerminalActivator.activate(session: session)
-        } label: {
-            HStack(spacing: 8) {
-                stateIndicator(for: session.state)
-                    .frame(width: 8, height: 8)
+        HStack(spacing: 8) {
+            // Main row content (tappable → terminal)
+            Button {
+                TerminalActivator.activate(session: session)
+            } label: {
+                HStack(spacing: 8) {
+                    stateIndicator(for: session.state)
+                        .frame(width: 8, height: 8)
 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(session.projectName)
-                        .font(scaledFont(size: fontScale.bodySize, weight: .medium))
-                        .foregroundStyle(fg)
-                        .lineLimit(1)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(session.projectName)
+                            .font(scaledFont(size: fontScale.bodySize, weight: .medium))
+                            .foregroundStyle(fg)
+                            .lineLimit(1)
 
-                    Text(stateDetail(for: session))
-                        .font(scaledFont(size: fontScale.detailSize))
-                        .foregroundStyle(fg.opacity(0.45))
-                        .lineLimit(1)
+                        Text(stateDetail(for: session))
+                            .font(scaledFont(size: fontScale.detailSize))
+                            .foregroundStyle(fg.opacity(0.45))
+                            .lineLimit(1)
+                    }
+
+                    Spacer()
+
+                    ModeBadge(mode: session.permissionMode)
+
+                    Text(session.elapsedFormatted)
+                        .font(scaledFont(size: fontScale.monoSize, design: .monospaced))
+                        .foregroundStyle(fg.opacity(0.35))
                 }
-
-                Spacer()
-
-                Image(systemName: "arrow.up.forward.app")
-                    .font(scaledFont(size: fontScale.detailSize))
-                    .foregroundStyle(fg.opacity(0.25))
-
-                ModeBadge(mode: session.permissionMode)
-
-                Text(session.elapsedFormatted)
-                    .font(scaledFont(size: fontScale.monoSize, design: .monospaced))
-                    .foregroundStyle(fg.opacity(0.35))
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(fg.opacity(0.06))
-            )
+            .buttonStyle(.plain)
+
+            // Action buttons
+            HStack(spacing: 4) {
+                Button { TerminalActivator.activate(session: session) } label: {
+                    Image(systemName: "apple.terminal")
+                        .font(scaledFont(size: fontScale.detailSize))
+                        .foregroundStyle(fg.opacity(0.3))
+                }
+                .buttonStyle(.plain)
+                .help("Open in terminal")
+
+                Button { NSWorkspace.shared.open(URL(fileURLWithPath: session.cwd)) } label: {
+                    Image(systemName: "folder")
+                        .font(scaledFont(size: fontScale.detailSize))
+                        .foregroundStyle(fg.opacity(0.3))
+                }
+                .buttonStyle(.plain)
+                .help("Open folder in Finder")
+            }
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(fg.opacity(0.06))
+        )
     }
 
     // MARK: - Approval Row for specific queued item (show-all mode)
@@ -336,7 +354,7 @@ struct NotchOverlay: View {
                         .font(scaledFont(size: fontScale.bodySize, weight: .semibold))
                         .foregroundStyle(fg)
 
-                    Image(systemName: "arrow.up.forward.app")
+                    Image(systemName: "apple.terminal")
                         .font(scaledFont(size: fontScale.badgeSize))
                         .foregroundStyle(fg.opacity(0.25))
 
@@ -479,7 +497,7 @@ struct NotchOverlay: View {
                         .font(scaledFont(size: fontScale.bodySize, weight: .semibold))
                         .foregroundStyle(fg)
 
-                    Image(systemName: "arrow.up.forward.app")
+                    Image(systemName: "apple.terminal")
                         .font(scaledFont(size: fontScale.badgeSize))
                         .foregroundStyle(fg.opacity(0.25))
 
@@ -798,7 +816,7 @@ struct QuestionRowView: View {
                         .font(font(size: fontScale.bodySize, weight: .semibold))
                         .foregroundStyle(fg)
 
-                    Image(systemName: "arrow.up.forward.app")
+                    Image(systemName: "apple.terminal")
                         .font(font(size: fontScale.badgeSize))
                         .foregroundStyle(fg.opacity(0.25))
 
@@ -979,15 +997,6 @@ struct FlowLayout: Layout {
         }
 
         return (CGSize(width: maxWidth, height: y + rowHeight), positions)
-    }
-}
-
-// MARK: - Pill Frame Preference Key
-
-private struct PillFrameKey: PreferenceKey {
-    static var defaultValue: CGRect = .zero
-    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
-        value = nextValue()
     }
 }
 
