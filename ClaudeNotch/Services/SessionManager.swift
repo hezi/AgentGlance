@@ -308,14 +308,15 @@ final class SessionManager {
             toolName: event.tool_name,
             toolInput: event.tool_input
         )
+        logger.info("PreToolUse: tool=\(event.tool_name ?? "?") summary=\(session.pendingToolSummary ?? "nil")")
         transition(session, to: .working)
     }
 
     private func handlePostToolUse(_ event: HookPayload) {
         let session = getOrCreateSession(event)
-        session.currentTool = nil
-        session.pendingToolSummary = nil
-        // Stay in working state — Claude is still thinking between tools
+        // Keep currentTool and pendingToolSummary visible until the next
+        // PreToolUse or Stop event — clearing immediately causes URLs and
+        // search queries to flash too briefly to see or click.
         session.lastActivity = Date()
     }
 
