@@ -6,6 +6,7 @@ struct NotchOverlay: View {
     var appState: AppState
     @State private var isExpanded = false
     @State private var isAutoExpanded = false // held open by auto-expand, not hover
+    @State private var isPinned = false
     @AppStorage(Constants.UserDefaultsKeys.fitNotchToText) private var fitToText = false
     @AppStorage(Constants.UserDefaultsKeys.notchFontScale) private var fontScaleRaw = NotchFontScale.m.rawValue
     @AppStorage(Constants.UserDefaultsKeys.liquidGlass) private var liquidGlass = false
@@ -103,15 +104,18 @@ struct NotchOverlay: View {
         ))
         .contentShape(Rectangle())
         .onHover { hovering in
-            guard !sessions.isEmpty else {
-                isExpanded = false
-                isAutoExpanded = false
+            guard !geometry.isDragging, !sessions.isEmpty else {
+                if sessions.isEmpty {
+                    isExpanded = false
+                    isAutoExpanded = false
+                    isPinned = false
+                }
                 return
             }
             if hovering {
                 isExpanded = true
                 isAutoExpanded = false // user took over, no longer auto
-            } else if !isAutoExpanded {
+            } else if !isAutoExpanded && !isPinned {
                 isExpanded = false
             }
         }
@@ -132,30 +136,59 @@ struct NotchOverlay: View {
     // MARK: - Collapsed bar
 
     private var collapsedBar: some View {
-        HStack(spacing: 8) {
-            if let session = primarySession {
-                stateIndicator(for: session.state)
-                    .frame(width: 10, height: 10)
+        ZStack {
+            // Center: status label
+            HStack(spacing: 8) {
+                if let session = primarySession {
+                    stateIndicator(for: session.state)
+                        .frame(width: 10, height: 10)
 
-                Group {
-                    if sessions.count > 1, let urgent = urgentLabel {
-                        Text(urgent)
-                    } else if sessions.count > 1 {
-                        Text("\(session.projectName): \(stateText(for: session).lowercased())")
-                    } else {
-                        Text(stateText(for: session))
+                    Group {
+                        if sessions.count > 1, let urgent = urgentLabel {
+                            Text(urgent)
+                        } else if sessions.count > 1 {
+                            Text("\(session.projectName): \(stateText(for: session).lowercased())")
+                        } else {
+                            Text(stateText(for: session))
+                        }
                     }
-                }
-                .font(scaledFont(size: fontScale.bodySize, weight: .medium))
-                .foregroundStyle(fg.opacity(0.8))
-                .lineLimit(1)
-            } else {
-                Image(systemName: "terminal")
-                    .font(scaledFont(size: fontScale.detailSize))
-                    .foregroundStyle(fg.opacity(0.35))
-                Text("Claude Notch")
                     .font(scaledFont(size: fontScale.bodySize, weight: .medium))
-                    .foregroundStyle(fg.opacity(0.35))
+                    .foregroundStyle(fg.opacity(0.8))
+                    .lineLimit(1)
+                } else {
+                    Image(systemName: "terminal")
+                        .font(scaledFont(size: fontScale.detailSize))
+                        .foregroundStyle(fg.opacity(0.35))
+                    Text("Claude Notch")
+                        .font(scaledFont(size: fontScale.bodySize, weight: .medium))
+                        .foregroundStyle(fg.opacity(0.35))
+                }
+            }
+
+            // Left/right buttons (only when expanded)
+            if isExpanded {
+                HStack {
+                    Button {
+                        isPinned.toggle()
+                    } label: {
+                        Image(systemName: isPinned ? "pin.fill" : "pin")
+                            .font(scaledFont(size: fontScale.detailSize))
+                            .foregroundStyle(isPinned ? .accentColor : fg.opacity(0.35))
+                            .rotationEffect(.degrees(isPinned ? 0 : 45))
+                    }
+                    .buttonStyle(.plain)
+
+                    Spacer()
+
+                    Button {
+                        appState.showSettings()
+                    } label: {
+                        Image(systemName: "gearshape")
+                            .font(scaledFont(size: fontScale.detailSize))
+                            .foregroundStyle(fg.opacity(0.35))
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
         .padding(.horizontal, 16)
