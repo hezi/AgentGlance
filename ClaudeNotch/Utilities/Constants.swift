@@ -19,6 +19,10 @@ enum Constants {
         static let showAllApprovals = "showAllApprovals"
         static let expandedWidth = "expandedWidth"
         static let appearanceMode = "appearanceMode"
+        static let screenSelectionMode = "screenSelectionMode"
+        static let selectedScreenID = "selectedScreenID"
+        static let pillOffsetX = "pillOffsetX"
+        static let pillOffsetY = "pillOffsetY"
     }
 }
 

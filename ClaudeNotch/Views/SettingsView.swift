@@ -61,10 +61,36 @@ private struct GeneralPane: View {
     @AppStorage(Constants.UserDefaultsKeys.soundEnabled) private var soundEnabled = true
     @AppStorage(Constants.UserDefaultsKeys.autoExpandOnApproval) private var autoExpand = false
     @AppStorage(Constants.UserDefaultsKeys.showAllApprovals) private var showAllApprovals = false
+    @AppStorage(Constants.UserDefaultsKeys.screenSelectionMode) private var screenMode = "mainScreen"
+    @AppStorage(Constants.UserDefaultsKeys.selectedScreenID) private var selectedScreenID = ""
     @State private var launchAtLogin = false
 
     var body: some View {
         Form {
+            Section("Display") {
+                Picker("Show notch on", selection: $screenMode) {
+                    Text("Main Screen").tag("mainScreen")
+                    Text("Follow Cursor").tag("followCursor")
+                    Text("Specific Screen").tag("specific")
+                }
+
+                if screenMode == "specific" {
+                    Picker("Screen", selection: $selectedScreenID) {
+                        ForEach(NSScreen.screens, id: \.displayID) { screen in
+                            Text(screen.localizedName).tag(String(screen.displayID))
+                        }
+                    }
+                    .onChange(of: selectedScreenID) { _, _ in
+                        appState.resetPillPosition()
+                    }
+                }
+
+                Button("Reset Position") {
+                    appState.resetPillPosition()
+                }
+                .controlSize(.small)
+            }
+
             Section("Behavior") {
                 Toggle("Prevent sleep while Claude is working", isOn: $sleepPrevention)
                     .onChange(of: sleepPrevention) { _, newValue in

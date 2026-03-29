@@ -22,6 +22,7 @@ final class AppState {
     private var settingsWindow: NSWindow?
     private var globalHotkeyMonitor: Any?
     private var appearanceObserver: AnyCancellable?
+    private var screenModeObserver: AnyCancellable?
 
     /// Posted when the notch should auto-expand (e.g. approval came in)
     var shouldAutoExpand = false
@@ -38,6 +39,7 @@ final class AppState {
         createNotchWindow()
         registerGlobalHotkey()
         observeAppearanceChanges()
+        observeScreenModeChanges()
     }
 
     private func setupBindings() {
@@ -297,6 +299,22 @@ final class AppState {
         notchWindow?.appearance = appearance
         settingsWindow?.appearance = appearance
         onboardingWindow?.appearance = appearance
+    }
+
+    private func observeScreenModeChanges() {
+        screenModeObserver = UserDefaults.standard.publisher(
+            for: \.screenSelectionMode
+        ).sink { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.notchWindow?.positionAtNotch()
+            }
+        }
+    }
+
+    func resetPillPosition() {
+        UserDefaults.standard.set(0.0, forKey: Constants.UserDefaultsKeys.pillOffsetX)
+        UserDefaults.standard.set(0.0, forKey: Constants.UserDefaultsKeys.pillOffsetY)
+        notchWindow?.positionAtNotch()
     }
 
     private func jumpToMostUrgentSession() {
