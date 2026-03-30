@@ -4,8 +4,11 @@ set -euo pipefail
 # Build, sign, notarize, and create a GitHub release for AgentGlance.
 #
 # Usage:
-#   ./scripts/release.sh              # build only (no upload)
-#   ./scripts/release.sh --upload     # build + create GitHub release
+#   ./scripts/release.sh                      # build only (no upload)
+#   ./scripts/release.sh --bump patch         # bump 1.0.0 → 1.0.1, then build
+#   ./scripts/release.sh --bump minor         # bump 1.0.0 → 1.1.0, then build
+#   ./scripts/release.sh --bump major         # bump 1.0.0 → 2.0.0, then build
+#   ./scripts/release.sh --bump patch --upload  # bump + build + GitHub release
 #
 # Prerequisites:
 #   - Xcode with "Developer ID Application" certificate
@@ -40,14 +43,21 @@ error() { echo -e "${RED}[release]${NC} $1" >&2; exit 1; }
 
 # Parse args
 UPLOAD=false
-for arg in "$@"; do
-    case $arg in
-        --upload) UPLOAD=true ;;
-        *) error "Unknown argument: $arg" ;;
+BUMP=""
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --upload) UPLOAD=true; shift ;;
+        --bump)
+            BUMP="$2"
+            if [[ "$BUMP" != "patch" && "$BUMP" != "minor" && "$BUMP" != "major" ]]; then
+                error "Invalid bump type: $BUMP (use patch, minor, or major)"
+            fi
+            shift 2 ;;
+        *) error "Unknown argument: $1" ;;
     esac
 done
 
-# Get version from Xcode project
+# Get current version from Xcode project
 VERSION=$(xcodebuild -scheme "$SCHEME" -showBuildSettings 2>/dev/null \
     | grep MARKETING_VERSION | head -1 | awk '{print $3}')
 BUILD=$(xcodebuild -scheme "$SCHEME" -showBuildSettings 2>/dev/null \
@@ -58,6 +68,30 @@ if [ -z "$VERSION" ]; then
 fi
 if [ -z "$BUILD" ]; then
     BUILD="1"
+fi
+
+# Bump version if requested
+if [ -n "$BUMP" ]; then
+    IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+    case $BUMP in
+        major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+        minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+        patch) PATCH=$((PATCH + 1)) ;;
+    esac
+    VERSION="$MAJOR.$MINOR.$PATCH"
+    BUILD=$((BUILD + 1))
+
+    info "Bumping version to $VERSION (build $BUILD)"
+
+    # Update in pbxproj
+    PBXPROJ="$PROJECT/project.pbxproj"
+    sed -i '' "s/MARKETING_VERSION = [^;]*/MARKETING_VERSION = $VERSION/" "$PBXPROJ"
+    sed -i '' "s/CURRENT_PROJECT_VERSION = [^;]*/CURRENT_PROJECT_VERSION = $BUILD/" "$PBXPROJ"
+
+    # Commit the version bump
+    git add "$PBXPROJ"
+    git commit -m "Bump version to $VERSION (build $BUILD)"
+    info "Version bump committed"
 fi
 
 info "Building AgentGlance v$VERSION ($BUILD)"
