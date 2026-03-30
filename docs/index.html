@@ -22,7 +22,23 @@
             --accent-blue: #0a84ff;
             --card-bg: #141414;
             --card-border: #222;
+            --kbd-bg: #222;
             --max-width: 720px;
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg: #f5f5f7;
+                --fg: #1d1d1f;
+                --muted: #6e6e73;
+                --accent-green: #28a745;
+                --accent-yellow: #e6a700;
+                --accent-red: #d93025;
+                --accent-blue: #0066cc;
+                --card-bg: #ffffff;
+                --card-border: #d2d2d7;
+                --kbd-bg: #e8e8ed;
+            }
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -202,9 +218,17 @@
         .terminal-badge {
             font-size: 12px;
             color: var(--muted);
-            background: var(--bg);
+            background: var(--card-bg);
             padding: 4px 10px;
             border-radius: 6px;
+            border: 1px solid var(--card-border);
+        }
+
+        kbd {
+            background: var(--kbd-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
             border: 1px solid var(--card-border);
         }
 
@@ -253,7 +277,7 @@
         footer a {
             color: var(--muted);
             text-decoration: underline;
-            text-decoration-color: #444;
+            text-decoration-color: var(--card-border);
         }
 
         footer a:hover { color: var(--fg); }
