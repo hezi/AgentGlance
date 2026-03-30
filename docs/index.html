@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentGlance — Monitor your AI coding agents</title>
+    <meta name="description" content="A macOS overlay for monitoring AI coding agents in real time. Approve tools, answer questions, review plans — all without leaving your flow.">
+    <meta property="og:title" content="AgentGlance">
+    <meta property="og:description" content="Monitor your AI coding agents from a floating macOS overlay.">
+    <meta property="og:image" content="https://agentglance.app/icon.png">
+    <meta property="og:url" content="https://agentglance.app">
+    <meta name="twitter:card" content="summary">
+    <link rel="icon" type="image/png" href="icon.png">
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --fg: #e8e8e8;
+            --muted: #888;
+            --accent-green: #34c759;
+            --accent-yellow: #ffd60a;
+            --accent-red: #ff453a;
+            --accent-blue: #0a84ff;
+            --card-bg: #141414;
+            --card-border: #222;
+            --max-width: 720px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Hero */
+        .hero {
+            text-align: center;
+            padding: 80px 24px 48px;
+            max-width: var(--max-width);
+            margin: 0 auto;
+        }
+
+        .hero img.icon {
+            width: 96px;
+            height: 96px;
+            border-radius: 20px;
+            margin-bottom: 24px;
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+        }
+
+        .hero .tagline {
+            font-size: 20px;
+            color: var(--muted);
+            max-width: 480px;
+            margin: 0 auto 32px;
+        }
+
+        .hero .cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--fg);
+            color: var(--bg);
+            padding: 12px 28px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+
+        .hero .cta:hover { opacity: 0.85; }
+
+        .hero .cta-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--muted);
+            font-size: 14px;
+            text-decoration: none;
+            margin-left: 16px;
+            transition: color 0.2s;
+        }
+
+        .hero .cta-secondary:hover { color: var(--fg); }
+
+        .hero .platform {
+            display: block;
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 12px;
+        }
+
+        /* Demo */
+        .demo {
+            text-align: center;
+            padding: 24px;
+            max-width: 560px;
+            margin: 0 auto;
+        }
+
+        .demo img {
+            width: 100%;
+            border-radius: 16px;
+            border: 1px solid var(--card-border);
+        }
+
+        /* Features */
+        .features {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 64px 24px;
+        }
+
+        .features h2 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--muted);
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .feature {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .feature .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        .feature h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .feature p {
+            font-size: 14px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .feature.wide {
+            grid-column: 1 / -1;
+        }
+
+        /* Traffic light dots */
+        .dot-green { background: var(--accent-green); }
+        .dot-yellow { background: var(--accent-yellow); }
+        .dot-red { background: var(--accent-red); }
+
+        /* Status bar */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            padding: 20px;
+            margin-bottom: 8px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        /* Terminals */
+        .terminals {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .terminal-badge {
+            font-size: 12px;
+            color: var(--muted);
+            background: var(--bg);
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--card-border);
+        }
+
+        /* Setup */
+        .setup {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 0 24px 64px;
+            text-align: center;
+        }
+
+        .setup h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .setup p {
+            color: var(--muted);
+            font-size: 16px;
+            margin-bottom: 24px;
+        }
+
+        .setup code {
+            display: block;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 16px 20px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 14px;
+            color: var(--fg);
+            text-align: left;
+            overflow-x: auto;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 48px 24px;
+            border-top: 1px solid var(--card-border);
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        footer a {
+            color: var(--muted);
+            text-decoration: underline;
+            text-decoration-color: #444;
+        }
+
+        footer a:hover { color: var(--fg); }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .hero h1 { font-size: 32px; }
+            .hero .tagline { font-size: 16px; }
+            .feature-grid { grid-template-columns: 1fr; }
+            .hero .cta-secondary { display: block; margin: 12px 0 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <section class="hero">
+        <img src="icon.png" alt="AgentGlance" class="icon">
+        <h1>AgentGlance</h1>
+        <p class="tagline">Monitor your AI coding agents from a floating macOS overlay. Approve, answer, review — without breaking flow.</p>
+        <a href="https://github.com/hezi/AgentGlance" class="cta">
+            View on GitHub
+        </a>
+        <a href="https://github.com/hezi/AgentGlance/releases" class="cta-secondary">
+            Download latest release &rarr;
+        </a>
+        <span class="platform">macOS 14+ &middot; Apple Silicon &middot; Zero dependencies</span>
+    </section>
+
+    <section class="demo">
+        <img src="demo.gif" alt="AgentGlance demo">
+    </section>
+
+    <section class="features">
+        <h2>Features</h2>
+
+        <div class="status-bar">
+            <span class="status-item"><span class="dot dot-green"></span> Working</span>
+            <span class="status-item"><span class="dot dot-yellow"></span> Needs Approval</span>
+            <span class="status-item"><span class="dot dot-red"></span> Ready</span>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature">
+                <h3>Approve or Deny</h3>
+                <p>Allow, Always Allow, Deny, or Skip tool requests directly from the overlay. No terminal switching.</p>
+            </div>
+            <div class="feature">
+                <h3>Answer Questions</h3>
+                <p>When your agent asks a question, pick from selectable options right in the overlay.</p>
+            </div>
+            <div class="feature">
+                <h3>Review Plans</h3>
+                <p>See a preview of proposed implementation plans. Approve, reject, or open the full file.</p>
+            </div>
+            <div class="feature">
+                <h3>Terminal Navigation</h3>
+                <p>Click any session to jump to the right terminal tab. Works with:</p>
+                <div class="terminals">
+                    <span class="terminal-badge">Ghostty</span>
+                    <span class="terminal-badge">Terminal.app</span>
+                    <span class="terminal-badge">iTerm2</span>
+                    <span class="terminal-badge">Kitty</span>
+                </div>
+            </div>
+            <div class="feature">
+                <h3>Clickable URLs</h3>
+                <p>WebFetch URLs and WebSearch queries show as clickable links. See what your agent is browsing.</p>
+            </div>
+            <div class="feature">
+                <h3>Multi-Monitor</h3>
+                <p>Pin to a specific screen, follow your cursor, or stick to the main display.</p>
+            </div>
+            <div class="feature">
+                <h3>Global Hotkey</h3>
+                <p>Press <kbd>&#x2325;&#x21E7;C</kbd> from anywhere to jump to the most urgent session.</p>
+            </div>
+            <div class="feature">
+                <h3>Customizable</h3>
+                <p>Font size, expanded width, Liquid Glass mode, dark/light theme, draggable position.</p>
+            </div>
+            <div class="feature wide">
+                <h3>Coming Soon</h3>
+                <p>Support for <strong>OpenAI Codex CLI</strong> and <strong>Google Gemini CLI</strong> — same overlay, all your agents in one place.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="setup">
+        <h2>Get started in 30 seconds</h2>
+        <p>Clone, build, paste the hooks config, and you're running.</p>
+        <code>
+git clone https://github.com/hezi/AgentGlance.git<br>
+cd AgentGlance<br>
+open AgentGlance.xcodeproj<br>
+<span style="color: var(--muted)"># Cmd+R to build and run, then click "Setup Hooks" in the menu bar</span>
+        </code>
+    </section>
+
+    <footer>
+        <p>
+            Built by <a href="https://github.com/hezi">@hezi</a> &middot;
+            <a href="https://github.com/hezi/AgentGlance">GitHub</a> &middot;
+            MIT License
+        </p>
+    </footer>
+
+</body>
+</html>
