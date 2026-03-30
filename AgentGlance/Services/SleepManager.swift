@@ -2,7 +2,7 @@ import Foundation
 import IOKit.pwr_mgt
 import os
 
-private let logger = Logger(subsystem: "com.claudenotch", category: "SleepManager")
+private let logger = Logger(subsystem: "app.agentglance", category: "SleepManager")
 
 final class SleepManager {
     private var assertionID: IOPMAssertionID = 0

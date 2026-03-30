@@ -2,7 +2,7 @@ import Foundation
 import Network
 import os
 
-private let logger = Logger(subsystem: "com.claudenotch", category: "HookServer")
+private let logger = Logger(subsystem: "app.agentglance", category: "HookServer")
 
 /// A parsed question from AskUserQuestion tool_input
 struct ParsedQuestion: Identifiable {
@@ -298,7 +298,7 @@ final class HookServer {
     }
 
     /// Deny a pending permission request
-    func denyPermission(sessionId: String, message: String = "Denied from Claude Notch") {
+    func denyPermission(sessionId: String, message: String = "Denied from AgentGlance") {
         guard let pending = dequeue(sessionId: sessionId) else { return }
 
         let escapedMessage = message.replacingOccurrences(of: "\"", with: "\\\"")
@@ -351,7 +351,7 @@ final class HookServer {
         else { pendingDecisions[sessionId] = queue }
 
         let decision = """
-        {"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"deny","message":"Denied from Claude Notch"}}}
+        {"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"deny","message":"Denied from AgentGlance"}}}
         """
         let response = HTTPParser.okResponse(body: decision)
         pending.connection.send(content: response, completion: .contentProcessed { _ in

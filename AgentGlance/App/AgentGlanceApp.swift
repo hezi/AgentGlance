@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct ClaudeNotchApp: App {
+struct AgentGlanceApp: App {
     @State private var appState = AppState()
 
     var body: some Scene {

@@ -482,7 +482,7 @@ private struct PermissionsPane: View {
     var body: some View {
         Form {
             Section {
-                Text("Claude Notch needs these permissions to focus terminal tabs and send notifications.")
+                Text("AgentGlance needs these permissions to focus terminal tabs and send notifications.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }

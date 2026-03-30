@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-private let logger = Logger(subsystem: "com.claudenotch", category: "SessionManager")
+private let logger = Logger(subsystem: "app.agentglance", category: "SessionManager")
 
 @Observable
 @MainActor

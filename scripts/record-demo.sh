@@ -1,9 +1,9 @@
 #!/bin/bash
-# Record a demo GIF of ClaudeNotch by simulating hook events
+# Record a demo GIF of AgentGlance by simulating hook events
 # Usage: ./scripts/record-demo.sh
 #
 # Prerequisites:
-#   - ClaudeNotch must be running
+#   - AgentGlance must be running
 #   - ffmpeg must be installed (brew install ffmpeg)
 #   - screencapture (built into macOS)
 
@@ -16,7 +16,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 ASSETS_DIR="${PROJECT_DIR}/assets"
 MOV_FILE="${ASSETS_DIR}/demo.mov"
 GIF_FILE="${ASSETS_DIR}/demo.gif"
-PALETTE_FILE="/tmp/claudenotch-palette.png"
+PALETTE_FILE="/tmp/agentglance-palette.png"
 
 mkdir -p "$ASSETS_DIR"
 
@@ -25,8 +25,8 @@ if ! curl -s "http://localhost:${PORT}/health" > /dev/null 2>&1 && \
    ! curl -s -X POST -H 'Content-Type: application/json' \
      -d '{"session_id":"ping","cwd":"/tmp","hook_event_name":"SessionStart"}' \
      "${BASE_URL}/SessionStart" > /dev/null 2>&1; then
-    echo "Warning: ClaudeNotch might not be running on port ${PORT}"
-    echo "Start ClaudeNotch first, then re-run this script."
+    echo "Warning: AgentGlance might not be running on port ${PORT}"
+    echo "Start AgentGlance first, then re-run this script."
 fi
 
 if ! command -v ffmpeg &> /dev/null; then
@@ -54,14 +54,14 @@ REGION_H=400
 REGION_X=$(( (SCREEN_WIDTH - REGION_W) / 2 ))
 REGION_Y=0
 
-echo "=== ClaudeNotch Demo Recorder ==="
+echo "=== AgentGlance Demo Recorder ==="
 echo ""
 echo "This will:"
 echo "  1. Record the notch area of your screen (${REGION_W}x${REGION_H} at top-center)"
 echo "  2. Simulate Claude Code sessions with hook events"
 echo "  3. Convert the recording to a GIF at ${GIF_FILE}"
 echo ""
-echo "Make sure ClaudeNotch is running and visible."
+echo "Make sure AgentGlance is running and visible."
 echo ""
 read -p "Press Enter to start recording..."
 

@@ -1,7 +1,7 @@
 import AppKit
 import os
 
-private let logger = Logger(subsystem: "com.claudenotch", category: "TerminalActivator")
+private let logger = Logger(subsystem: "app.agentglance", category: "TerminalActivator")
 
 enum TerminalActivator {
     /// Activate the terminal tab/window running the given session

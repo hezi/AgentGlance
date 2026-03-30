@@ -5,6 +5,6 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>Claude Notch needs automation access to focus terminal windows and tabs when you click a session.</string>
+	<string>AgentGlance needs automation access to focus terminal windows and tabs when you click a session.</string>
 </dict>
 </plist>

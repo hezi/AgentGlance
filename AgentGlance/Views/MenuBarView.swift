@@ -83,7 +83,15 @@ struct MenuBarView: View {
 
             Divider()
 
-            Button("Quit Claude Notch") {
+            Button(action: reportIssue) {
+                Label("Report Issue...", systemImage: "ladybug")
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+
+            Divider()
+
+            Button("Quit AgentGlance") {
                 NSApplication.shared.terminate(nil)
             }
             .keyboardShortcut("q")
@@ -346,7 +354,7 @@ struct MenuBarView: View {
                     .controlSize(.small)
 
                     Button {
-                        appState.hookServer.denyPermission(sessionId: session.id, message: "Plan rejected from Claude Notch")
+                        appState.hookServer.denyPermission(sessionId: session.id, message: "Plan rejected from AgentGlance")
                     } label: {
                         Label("Reject", systemImage: "xmark")
                             .font(.system(size: 10, weight: .semibold))
@@ -442,6 +450,67 @@ struct MenuBarView: View {
         case .ready: .red
         case .complete: .green
         }
+    }
+
+    // MARK: - Report Issue
+
+    private func reportIssue() {
+        let crashLog = findLatestCrashLog()
+
+        if let crashLog {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(crashLog, forType: .string)
+        }
+
+        // Open GitHub issues with a pre-filled template
+        var body = """
+        **Describe the issue:**\n\n\n
+        **Steps to reproduce:**\n1. \n\n
+        **macOS version:** \(ProcessInfo.processInfo.operatingSystemVersionString)\n
+        """
+        if crashLog != nil {
+            body += "\n**Crash log:** (pasted to clipboard — please paste below)\n```\n\n```"
+        }
+
+        let encoded = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let urlString = "https://github.com/hezi/AgentGlance/issues/new?body=\(encoded)"
+
+        if let url = URL(string: urlString) {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func findLatestCrashLog() -> String? {
+        let diagnosticsDir = NSString("~/Library/Logs/DiagnosticReports").expandingTildeInPath
+        let fm = FileManager.default
+
+        guard let files = try? fm.contentsOfDirectory(atPath: diagnosticsDir) else { return nil }
+
+        // Find the most recent AgentGlance crash report (.ips or .crash)
+        var latestPath: String?
+        var latestDate: Date = .distantPast
+
+        for file in files where file.hasPrefix("AgentGlance") && (file.hasSuffix(".ips") || file.hasSuffix(".crash")) {
+            let path = (diagnosticsDir as NSString).appendingPathComponent(file)
+            if let attrs = try? fm.attributesOfItem(atPath: path),
+               let modified = attrs[.modificationDate] as? Date,
+               modified > latestDate {
+                latestDate = modified
+                latestPath = path
+            }
+        }
+
+        guard let path = latestPath,
+              let data = fm.contents(atPath: path),
+              let content = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+
+        // Truncate if very long (keep first 5000 chars)
+        if content.count > 5000 {
+            return String(content.prefix(5000)) + "\n\n... (truncated, full log at \(path))"
+        }
+        return content
     }
 }
 

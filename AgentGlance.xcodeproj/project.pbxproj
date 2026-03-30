@@ -7,28 +7,29 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A10001 /* ClaudeNotchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10001; };
-		A10002 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002; };
-		A10003 /* HookEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10003; };
-		A10004 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10004; };
-		A10005 /* HookServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10005; };
-		A10006 /* HTTPParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10006; };
-		A10007 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10007; };
-		A10008 /* SleepManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10008; };
-		A10009 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10009; };
-		A10010 /* NotchOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10010; };
-		A10011 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10011; };
-		A10012 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10012; };
-		A10013 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10013; };
-		A10014 /* NotchWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10014; };
-		A10015 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10015; };
-		A10016 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B10016; };
-		A10017 /* ProcessScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10019; };
-		A10018 /* TerminalActivator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10020; };
+		A10001 /* AgentGlanceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10001 /* AgentGlanceApp.swift */; };
+		A10002 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002 /* AppState.swift */; };
+		A10003 /* HookEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10003 /* HookEvent.swift */; };
+		A10004 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10004 /* Session.swift */; };
+		A10005 /* HookServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10005 /* HookServer.swift */; };
+		A10006 /* HTTPParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10006 /* HTTPParser.swift */; };
+		A10007 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10007 /* SessionManager.swift */; };
+		A10008 /* SleepManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10008 /* SleepManager.swift */; };
+		A10009 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10009 /* NotificationManager.swift */; };
+		A10010 /* NotchOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10010 /* NotchOverlay.swift */; };
+		A10011 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10011 /* MenuBarView.swift */; };
+		A10012 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10012 /* SettingsView.swift */; };
+		A10013 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10013 /* OnboardingView.swift */; };
+		A10014 /* NotchWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10014 /* NotchWindow.swift */; };
+		A10015 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10015 /* Constants.swift */; };
+		A10016 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B10016 /* Assets.xcassets */; };
+		A10017 /* ProcessScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10019 /* ProcessScanner.swift */; };
+		A10018 /* TerminalActivator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10020 /* TerminalActivator.swift */; };
+		A10019 /* AppIconViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10021 /* AppIconViews.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		B10001 /* ClaudeNotchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeNotchApp.swift; sourceTree = "<group>"; };
+		B10001 /* AgentGlanceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentGlanceApp.swift; sourceTree = "<group>"; };
 		B10002 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		B10003 /* HookEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HookEvent.swift; sourceTree = "<group>"; };
 		B10004 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
@@ -45,10 +46,11 @@
 		B10015 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		B10016 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B10017 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		B10018 /* ClaudeNotch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ClaudeNotch.entitlements; sourceTree = "<group>"; };
+		B10018 /* AgentGlance.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AgentGlance.entitlements; sourceTree = "<group>"; };
 		B10019 /* ProcessScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessScanner.swift; sourceTree = "<group>"; };
 		B10020 /* TerminalActivator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalActivator.swift; sourceTree = "<group>"; };
-		P10001 /* ClaudeNotch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClaudeNotch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10021 /* AppIconViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIconViews.swift; sourceTree = "<group>"; };
+		P10001 /* AgentGlance.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AgentGlance.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -62,15 +64,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		G10001 /* Root */ = {
+		G10001 = {
 			isa = PBXGroup;
 			children = (
-				G10002 /* ClaudeNotch */,
+				G10002 /* AgentGlance */,
 				G10009 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		G10002 /* ClaudeNotch */ = {
+		G10002 /* AgentGlance */ = {
 			isa = PBXGroup;
 			children = (
 				G10003 /* App */,
@@ -80,15 +82,15 @@
 				G10007 /* Views */,
 				G10008 /* Utilities */,
 				G10010 /* Resources */,
-				B10018 /* ClaudeNotch.entitlements */,
+				B10018 /* AgentGlance.entitlements */,
 			);
-			path = ClaudeNotch;
+			path = AgentGlance;
 			sourceTree = "<group>";
 		};
 		G10003 /* App */ = {
 			isa = PBXGroup;
 			children = (
-				B10001 /* ClaudeNotchApp.swift */,
+				B10001 /* AgentGlanceApp.swift */,
 				B10002 /* AppState.swift */,
 			);
 			path = App;
@@ -131,6 +133,7 @@
 				B10011 /* MenuBarView.swift */,
 				B10012 /* SettingsView.swift */,
 				B10013 /* OnboardingView.swift */,
+				B10021 /* AppIconViews.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -147,7 +150,7 @@
 		G10009 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				P10001 /* ClaudeNotch.app */,
+				P10001 /* AgentGlance.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -164,9 +167,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		T10001 /* ClaudeNotch */ = {
+		T10001 /* AgentGlance */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = C10003;
+			buildConfigurationList = C10003 /* Build configuration list for PBXNativeTarget "AgentGlance" */;
 			buildPhases = (
 				S10001 /* Sources */,
 				F10001 /* Frameworks */,
@@ -176,12 +179,46 @@
 			);
 			dependencies = (
 			);
-			name = ClaudeNotch;
-			productName = ClaudeNotch;
-			productReference = P10001 /* ClaudeNotch.app */;
+			name = AgentGlance;
+			productName = AgentGlance;
+			productReference = P10001 /* AgentGlance.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
+
+/* Begin PBXAggregateTarget section */
+		T10002 /* Generate Icon */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = C10005 /* Build configuration list for PBXAggregateTarget "Generate Icon" */;
+			buildPhases = (
+				SP1001 /* Run Script — generate icon */,
+			);
+			dependencies = (
+			);
+			name = "Generate Icon";
+			productName = "Generate Icon";
+		};
+/* End PBXAggregateTarget section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		SP1001 /* Run Script — generate icon */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/scripts/generate-icon-main.swift",
+				"$(SRCROOT)/AgentGlance/Views/AppIconViews.swift",
+			);
+			name = "Run Script — generate icon";
+			outputPaths = (
+				"$(SRCROOT)/AgentGlance/Resources/Assets.xcassets/AppIcon.appiconset/icon_512x512@2x.png",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "cd \"$SRCROOT\"\nICON_STYLE=${ICON_STYLE:-suggestive}\n\n# Compile AppIconViews.swift + generator main into a temp binary\nBIN=$(mktemp)\nswiftc -o \"$BIN\" \\\n  AgentGlance/Views/AppIconViews.swift \\\n  scripts/generate-icon-main.swift \\\n  -framework SwiftUI -framework AppKit \\\n  2>&1\n\n# Run it\n\"$BIN\" \"$ICON_STYLE\"\nrm -f \"$BIN\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXProject section */
 		PR1001 /* Project object */ = {
@@ -194,9 +231,12 @@
 					T10001 = {
 						CreatedOnToolsVersion = 15.4;
 					};
+					T10002 = {
+						CreatedOnToolsVersion = 15.4;
+					};
 				};
 			};
-			buildConfigurationList = C10001;
+			buildConfigurationList = C10001 /* Build configuration list for PBXProject "AgentGlance" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -209,7 +249,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				T10001 /* ClaudeNotch */,
+				T10001 /* AgentGlance */,
+				T10002 /* Generate Icon */,
 			);
 		};
 /* End PBXProject section */
@@ -230,7 +271,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A10001 /* ClaudeNotchApp.swift in Sources */,
+				A10001 /* AgentGlanceApp.swift in Sources */,
 				A10002 /* AppState.swift in Sources */,
 				A10003 /* HookEvent.swift in Sources */,
 				A10004 /* Session.swift in Sources */,
@@ -247,6 +288,7 @@
 				A10015 /* Constants.swift in Sources */,
 				A10017 /* ProcessScanner.swift in Sources */,
 				A10018 /* TerminalActivator.swift in Sources */,
+				A10019 /* AppIconViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -285,6 +327,32 @@
 			};
 			name = Debug;
 		};
+		C10D02 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = AgentGlance/AgentGlance.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AgentGlance/Resources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "AgentGlance";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.agentglance.AgentGlance;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
 		C10R01 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -309,42 +377,18 @@
 			};
 			name = Release;
 		};
-		C10D02 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = ClaudeNotch/ClaudeNotch.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ClaudeNotch/Resources/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Claude Notch";
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.claudenotch.app;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-			};
-			name = Debug;
-		};
 		C10R02 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = ClaudeNotch/ClaudeNotch.entitlements;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = AgentGlance/AgentGlance.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ClaudeNotch/Resources/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Claude Notch";
+				INFOPLIST_FILE = AgentGlance/Resources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "AgentGlance";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -352,17 +396,33 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.claudenotch.app;
+				PRODUCT_BUNDLE_IDENTIFIER = app.agentglance.AgentGlance;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};
+		C10D03 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		C10R03 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		C10001 /* Build configuration list for PBXProject */ = {
+		C10001 /* Build configuration list for PBXProject "AgentGlance" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C10D01 /* Debug */,
@@ -371,7 +431,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		C10003 /* Build configuration list for PBXNativeTarget */ = {
+		C10003 /* Build configuration list for PBXNativeTarget "AgentGlance" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C10D02 /* Debug */,
@@ -381,7 +441,15 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
+		C10005 /* Build configuration list for PBXAggregateTarget "Generate Icon" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C10D03 /* Debug */,
+				C10R03 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 	};
 	rootObject = PR1001 /* Project object */;
 }

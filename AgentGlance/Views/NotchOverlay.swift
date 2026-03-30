@@ -159,7 +159,7 @@ struct NotchOverlay: View {
                     Image(systemName: "terminal")
                         .font(scaledFont(size: fontScale.detailSize))
                         .foregroundStyle(fg.opacity(0.35))
-                    Text("Claude Notch")
+                    Text("AgentGlance")
                         .font(scaledFont(size: fontScale.bodySize, weight: .medium))
                         .foregroundStyle(fg.opacity(0.35))
                 }
@@ -650,7 +650,7 @@ struct NotchOverlay: View {
                     .buttonStyle(.plain)
 
                     Button {
-                        hookServer.denyPermission(sessionId: session.id, message: "Plan rejected from Claude Notch")
+                        hookServer.denyPermission(sessionId: session.id, message: "Plan rejected from AgentGlance")
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "xmark")

@@ -336,7 +336,8 @@ final class AppState {
             backing: .buffered,
             defer: false
         )
-        window.title = "Claude Notch Settings"
+        window.title = "AgentGlance Settings"
+        window.isReleasedWhenClosed = false
         window.minSize = NSSize(width: 480, height: 300)
         window.appearance = AppearanceHelper.nsAppearance()
         window.contentView = NSHostingView(rootView: view)
@@ -350,16 +351,31 @@ final class AppState {
         settingsWindow = window
 
         // Watch for close to hide from cmd+tab again
-        NotificationCenter.default.addObserver(
-            forName: NSWindow.willCloseNotification,
-            object: window,
-            queue: .main
-        ) { [weak self] _ in
+        let closeDelegate = WindowCloseDelegate { [weak self] in
             self?.settingsWindow = nil
-            // Only go back to accessory if no other windows are open
-            if self?.onboardingWindow == nil {
-                NSApp.setActivationPolicy(.accessory)
+            // Defer activation policy change — changing during window close crashes AppKit
+            DispatchQueue.main.async {
+                if self?.onboardingWindow == nil {
+                    NSApp.setActivationPolicy(.accessory)
+                }
             }
         }
+        // Store the delegate so it stays alive as long as the window
+        objc_setAssociatedObject(window, "closeDelegate", closeDelegate, .OBJC_ASSOCIATION_RETAIN)
+        window.delegate = closeDelegate
+    }
+}
+
+// MARK: - Window close delegate helper
+
+private class WindowCloseDelegate: NSObject, NSWindowDelegate {
+    let onClose: () -> Void
+
+    init(onClose: @escaping () -> Void) {
+        self.onClose = onClose
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        onClose()
     }
 }

@@ -1,8 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Edit(/Users/jorgecohen/Projects/ClaudeNotch/ClaudeNotch/App/ClaudeNotchApp.swift)",
-      "Bash(xcodebuild -scheme ClaudeNotch -configuration Debug build 2>&1 | tail -5)",
+      "Edit(/Users/jorgecohen/Projects/AgentGlance/AgentGlance/App/AgentGlanceApp.swift)",
+      "Bash(xcodebuild -scheme AgentGlance -configuration Debug build 2>&1 | tail -5)",
       "WebFetch"
     ]
   }

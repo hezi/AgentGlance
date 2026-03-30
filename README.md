@@ -1,6 +1,6 @@
-# ClaudeNotch
+# AgentGlance
 
-A macOS notch widget that monitors [Claude Code](https://docs.anthropic.com/en/docs/claude-code) sessions in real time. See live status, approve tool use, review plans, and jump to the right terminal tab — all from your menu bar.
+A macOS overlay that monitors [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and other AI coding agent(https://docs.anthropic.com/en/docs/claude-code) sessions in real time. See live status, approve tool use, answer questions, review plans, and jump to the right terminal tab — all from a floating overlay.
 
 ![demo](assets/demo.gif)
 
@@ -9,11 +9,16 @@ A macOS notch widget that monitors [Claude Code](https://docs.anthropic.com/en/d
 - **Live session status** in a Dynamic Island-style notch overlay (green = working, yellow = needs approval, red = finished)
 - **Approve or deny** tool use requests directly from the notch — no need to switch to the terminal
 - **"Always Allow"** to add permanent permission rules for trusted commands
-- **Jump to the right terminal tab** with one click or the global hotkey (supports Ghostty, Terminal.app, iTerm2, Kitty)
-- **Prevent sleep** while Claude is working
+- **Answer questions** inline when Claude asks via AskUserQuestion
 - **Review plans** inline when Claude proposes an implementation
-- **See URLs** Claude wants to fetch, clickable to open in your browser
-- **Customizable** font size and notch width
+- **Jump to the right terminal tab** with one click or the global hotkey (supports Ghostty, Terminal.app, iTerm2, Kitty)
+- **Multi-monitor support** — pin to a specific screen or follow your cursor
+- **Draggable pill** — drag to reposition, snaps back to center when released nearby
+- **Pin mode** — keep the overlay expanded while you work
+- **Liquid Glass** translucent mode with adjustable frost
+- **Dark / Light / System** appearance
+- **Prevent sleep** while Claude is working
+- **Customizable** font size, expanded width, and appearance
 
 ## Requirements
 
@@ -26,16 +31,16 @@ A macOS notch widget that monitors [Claude Code](https://docs.anthropic.com/en/d
 ### 1. Build and run
 
 ```bash
-git clone https://github.com/hezi/ClaudeNotch.git
-cd ClaudeNotch
-open ClaudeNotch.xcodeproj
+git clone https://github.com/hezi/AgentGlance.git
+cd AgentGlance
+open AgentGlance.xcodeproj
 # Build and run (Cmd+R) in Xcode
 ```
 
 Or build from the command line:
 
 ```bash
-xcodebuild -project ClaudeNotch.xcodeproj -scheme ClaudeNotch -configuration Release build
+xcodebuild -project AgentGlance.xcodeproj -scheme AgentGlance -configuration Release build
 ```
 
 ### 2. Add hooks to Claude Code
@@ -138,7 +143,7 @@ Add the following to `~/.claude/settings.json` (or use the built-in **Setup Hook
 }
 ```
 
-All hooks use `|| true` so they fail silently when ClaudeNotch isn't running.
+All hooks use `|| true` so they fail silently when AgentGlance isn't running.
 
 ## Features
 
@@ -156,6 +161,8 @@ A floating pill at the top of your screen shows the current state of your Claude
 
 Hover to expand and see all active sessions. Click any session to jump to its terminal tab.
 
+When expanded, the header shows a **pin** button (keeps the overlay open) and a **settings** button.
+
 ### Permission Control
 
 When Claude needs approval to run a tool, the notch shows the tool name and command/file path with action buttons:
@@ -164,6 +171,10 @@ When Claude needs approval to run a tool, the notch shows the tool name and comm
 - **Always** — approve and add a permanent rule to project settings (never ask again for this command)
 - **Deny** — reject the request
 - **Skip** — dismiss and let the normal CLI prompt handle it
+
+### Question Answering
+
+When Claude asks a question via `AskUserQuestion`, the notch displays the question with selectable options. Pick your answer directly from the overlay without switching to the terminal.
 
 ### Plan Review
 
@@ -185,6 +196,18 @@ Click any session row to activate the correct terminal tab. The app detects whic
 
 Requires Automation permission (grant via Settings > Permissions).
 
+### Draggable Pill
+
+Drag the pill to reposition it anywhere on screen. Release near the default position (top center) and it snaps back with an animation. Custom position is persisted across launches. Use **Reset Position** in Settings to restore the default.
+
+### Multi-Monitor
+
+Choose which display the notch appears on:
+
+- **Main Screen** — always on the primary display (default)
+- **Follow Cursor** — moves to whichever screen your cursor is on
+- **Specific Screen** — pick a connected display from the list
+
 ### Global Hotkey
 
 Press **Option+Shift+C** from anywhere to jump to the most urgent session's terminal. Sessions are prioritized: approval needed > working > ready > idle.
@@ -193,29 +216,31 @@ Press **Option+Shift+C** from anywhere to jump to the most urgent session's term
 
 Toggle in settings to prevent macOS from sleeping while any Claude Code session is actively working. Uses `IOPMAssertionCreateWithDescription`.
 
-### Auto-Expand on Approval
-
-Enable in Settings > General to automatically expand the notch overlay when a permission request comes in, so you see the details without hovering.
-
 ### Process Detection
 
-On launch, ClaudeNotch reads `~/.claude/sessions/*.json` to detect already-running Claude Code sessions. No need to restart your sessions — they appear immediately with correct names and elapsed times.
+On launch, AgentGlance reads `~/.claude/sessions/*.json` to detect already-running Claude Code sessions. No need to restart your sessions — they appear immediately with correct names and elapsed times.
 
 ## Settings
 
 ### General
 | Setting | Default | Description |
 |---------|---------|-------------|
+| Display | Main Screen | Which monitor shows the notch (Main / Follow Cursor / Specific) |
 | Prevent sleep | On | Block macOS sleep while Claude is working |
 | Play sound | On | Alert sound on state changes |
 | Auto-expand on approval | Off | Auto-expand notch when approval needed |
-| Launch at login | Off | Start ClaudeNotch when you log in |
+| Show all queued approvals | Off | Show all pending approvals at once instead of one at a time |
+| Launch at login | Off | Start AgentGlance when you log in |
 
 ### Appearance
 | Setting | Default | Description |
 |---------|---------|-------------|
+| Theme | System | Dark, Light, or follow system appearance |
 | Show status text | On | Display text in the collapsed notch bar |
-| Fit width to text | Off | Expand notch pill to fit label instead of fixed width |
+| Fit width to text | Off | Shrink-wrap the collapsed pill to its label |
+| Liquid Glass | Off | Translucent glass background |
+| Frost | 0.3 | Glass opacity (only with Liquid Glass) |
+| Expanded width | 340px | Width of the overlay when expanded |
 | Font size | M | Scale all notch text (System, XS, S, M, L, XL, XXL) |
 
 ### Server
@@ -226,9 +251,9 @@ On launch, ClaudeNotch reads `~/.claude/sessions/*.json` to detect already-runni
 ## Architecture
 
 ```
-ClaudeNotch/
+AgentGlance/
   App/
-    ClaudeNotchApp.swift      # @main, MenuBarExtra entry point
+    AgentGlanceApp.swift      # @main, MenuBarExtra entry point
     AppState.swift             # Central coordinator, window management, global hotkey
   Models/
     Session.swift              # Session state machine and model
@@ -248,8 +273,8 @@ ClaudeNotch/
     SettingsView.swift         # Settings window (General, Appearance, Server, Permissions)
     OnboardingView.swift       # Hooks setup guide with copy-to-clipboard
   Utilities/
-    NotchWindow.swift          # NSPanel configured as floating overlay
-    Constants.swift            # Default port, UserDefaults keys
+    NotchWindow.swift          # NSPanel with mouse pass-through and drag support
+    Constants.swift            # Default port, UserDefaults keys, font scales
 ```
 
 Zero external dependencies. Built entirely on Apple frameworks: Network, IOKit, UserNotifications, AppKit, SwiftUI.

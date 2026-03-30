@@ -3,7 +3,7 @@ import UserNotifications
 import AppKit
 import os
 
-private let logger = Logger(subsystem: "com.claudenotch", category: "NotificationManager")
+private let logger = Logger(subsystem: "app.agentglance", category: "NotificationManager")
 
 @MainActor
 final class NotificationManager: NSObject {

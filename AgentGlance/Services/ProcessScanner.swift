@@ -2,7 +2,7 @@ import Foundation
 import AppKit
 import os
 
-private let logger = Logger(subsystem: "com.claudenotch", category: "ProcessScanner")
+private let logger = Logger(subsystem: "app.agentglance", category: "ProcessScanner")
 
 struct ClaudeSessionInfo: Codable {
     let pid: Int
