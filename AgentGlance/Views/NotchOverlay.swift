@@ -13,8 +13,13 @@ struct NotchOverlay: View {
     @AppStorage(Constants.UserDefaultsKeys.glassFrost) private var glassFrost = 0.3
     @AppStorage(Constants.UserDefaultsKeys.showAllApprovals) private var showAllApprovals = false
     @AppStorage(Constants.UserDefaultsKeys.expandedWidth) private var expandedWidth = 340.0
+    @AppStorage(Constants.UserDefaultsKeys.keyboardNavMode) private var keyboardNavModeRaw = KeyboardNavMode.arrows.rawValue
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var geometry: NotchGeometry
+
+    private var keyboardNavMode: KeyboardNavMode {
+        KeyboardNavMode(rawValue: keyboardNavModeRaw) ?? .arrows
+    }
 
     /// Adaptive foreground color — white in dark mode, black in light mode
     private var fg: Color { colorScheme == .dark ? .white : .black }
@@ -114,7 +119,11 @@ struct NotchOverlay: View {
             }
             if hovering {
                 isExpanded = true
-                isAutoExpanded = false // user took over, no longer auto
+                isAutoExpanded = false
+                // Exit keyboard nav when mouse takes over
+                if appState.isKeyboardNavActive {
+                    appState.deactivateKeyboardNav()
+                }
             } else if !isAutoExpanded && !isPinned {
                 isExpanded = false
             }
@@ -131,6 +140,14 @@ struct NotchOverlay: View {
         }
         // Auto-expand stays open until the mouse leaves the pill area.
         // The onHover handler above handles collapsing when hovering = false.
+        .onChange(of: appState.isKeyboardNavActive) { _, active in
+            if !active {
+                // Collapse when keyboard nav deactivates
+                isExpanded = false
+                isAutoExpanded = false
+                isPinned = false
+            }
+        }
     }
 
     // MARK: - Collapsed bar
@@ -181,6 +198,9 @@ struct NotchOverlay: View {
                     Spacer()
 
                     Button {
+                        isExpanded = false
+                        isAutoExpanded = false
+                        isPinned = false
                         appState.showSettings()
                     } label: {
                         Image(systemName: "gearshape")
@@ -199,26 +219,87 @@ struct NotchOverlay: View {
 
     private var expandedDetail: some View {
         VStack(spacing: 4) {
-            ForEach(sessions, id: \.id) { session in
-                if session.state == .awaitingApproval && session.currentTool == "AskUserQuestion" {
-                    questionRow(session)
-                } else if session.state == .awaitingApproval && session.currentTool == "ExitPlanMode" {
-                    planReviewRow(session)
-                } else if session.state == .awaitingApproval {
-                    if showAllApprovals {
-                        // Show all queued approvals for this session
-                        let queue = hookServer.pendingDecisions[session.id] ?? []
-                        ForEach(Array(queue.enumerated()), id: \.offset) { index, pending in
-                            approvalRowForPending(session: session, pending: pending, index: index)
-                        }
-                        if queue.isEmpty {
+            ForEach(Array(sessions.enumerated()), id: \.element.id) { index, session in
+                Group {
+                    if session.state == .awaitingApproval && session.currentTool == "AskUserQuestion" {
+                        questionRow(session)
+                    } else if session.state == .awaitingApproval && session.currentTool == "ExitPlanMode" {
+                        planReviewRow(session)
+                    } else if session.state == .awaitingApproval {
+                        if showAllApprovals {
+                            let queue = hookServer.pendingDecisions[session.id] ?? []
+                            ForEach(Array(queue.enumerated()), id: \.offset) { qIdx, pending in
+                                approvalRowForPending(session: session, pending: pending, index: qIdx)
+                            }
+                            if queue.isEmpty {
+                                approvalRow(session)
+                            }
+                        } else {
                             approvalRow(session)
                         }
                     } else {
-                        approvalRow(session)
+                        sessionRow(session)
                     }
-                } else {
-                    sessionRow(session)
+                }
+                .overlay(
+                    appState.focusedRowIndex == index && appState.isKeyboardNavActive
+                        ? RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .strokeBorder(.blue.opacity(0.6), lineWidth: 1.5)
+                        : nil
+                )
+                .overlay(alignment: .leading) {
+                    // Number badge for row selection (number-key mode, no row selected yet)
+                    if appState.isKeyboardNavActive && keyboardNavMode == .numbers && appState.focusedRowIndex == nil {
+                        Text("\(index + 1)")
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .frame(width: 18, height: 18)
+                            .background(Circle().fill(.blue.opacity(0.7)))
+                            .offset(x: -6)
+                    }
+                }
+                .overlay(alignment: .bottom) {
+                    // Action bar when this row is focused (both modes)
+                    if appState.isKeyboardNavActive && appState.focusedRowIndex == index {
+                        let actions = appState.actionsForFocusedRow()
+                        if !actions.isEmpty && (keyboardNavMode == .numbers || appState.focusedActionIndex != nil) {
+                            HStack(spacing: 6) {
+                                ForEach(Array(actions.enumerated()), id: \.offset) { aIdx, action in
+                                    let isFocused = keyboardNavMode == .arrows && appState.focusedActionIndex == aIdx
+                                    HStack(spacing: 3) {
+                                        if keyboardNavMode == .numbers {
+                                            Text("\(aIdx + 1)")
+                                                .font(.system(size: 9, weight: .bold, design: .rounded))
+                                                .foregroundStyle(.white)
+                                                .frame(width: 16, height: 16)
+                                                .background(Circle().fill(.blue.opacity(0.7)))
+                                        }
+                                        if let icon = action.icon {
+                                            Image(systemName: icon)
+                                                .font(.system(size: 9))
+                                        }
+                                        Text(action.label)
+                                            .font(scaledFont(size: fontScale.badgeSize, weight: isFocused ? .bold : .medium))
+                                    }
+                                    .foregroundStyle(isFocused ? .white : fg.opacity(0.7))
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 3)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                            .fill(isFocused ? .blue.opacity(0.7) : .clear)
+                                    )
+                                }
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                    .fill(bg.opacity(0.95))
+                                    .shadow(color: .black.opacity(0.2), radius: 4)
+                            )
+                            .offset(y: 24)
+                        }
+                    }
                 }
             }
         }
@@ -615,20 +696,13 @@ struct NotchOverlay: View {
             }
             .buttonStyle(.plain)
 
-            // Plan preview
-            if let preview = session.pendingPlanPreview {
-                Text(preview)
-                    .font(scaledFont(size: fontScale.detailSize))
-                    .foregroundStyle(fg.opacity(0.7))
-                    .lineLimit(5)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 5)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 5, style: .continuous)
-                            .fill(fg.opacity(0.04))
-                    )
-            }
+            // Plan preview with markdown rendering
+            PlanPreviewView(
+                preview: session.pendingPlanPreview,
+                full: session.pendingPlanFull,
+                fontScale: fontScale,
+                fg: fg
+            )
 
             // Actions
             if hasPending {
@@ -1014,16 +1088,6 @@ struct QuestionRowView: View {
                 }
 
                 Spacer()
-
-                Button {
-                    TerminalActivator.activate(session: session)
-                    hookServer.dismissPermission(sessionId: session.id)
-                } label: {
-                    Text("Answer in Terminal")
-                        .font(font(size: fontScale.badgeSize, weight: .medium))
-                        .foregroundStyle(fg.opacity(0.4))
-                }
-                .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 10)
@@ -1102,6 +1166,112 @@ struct FlowLayout: Layout {
         }
 
         return (CGSize(width: maxWidth, height: y + rowHeight), positions)
+    }
+}
+
+// MARK: - Plan Preview (markdown, expandable)
+
+struct PlanPreviewView: View {
+    let preview: String?
+    let full: String?
+    let fontScale: NotchFontScale
+    let fg: Color
+    @State private var isExpanded = false
+
+    var body: some View {
+        if let content = isExpanded ? full : preview, !content.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                let lines = content.components(separatedBy: .newlines)
+
+                if isExpanded {
+                    ScrollView {
+                        markdownContent(lines: lines)
+                    }
+                    .frame(maxHeight: 500)
+                } else {
+                    markdownContent(lines: lines)
+                }
+
+                if full != nil && full != preview {
+                    Button {
+                        withAnimation(.smooth(duration: 0.2)) {
+                            isExpanded.toggle()
+                        }
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                                .font(.system(size: 8))
+                            Text(isExpanded ? "Show less" : "Show full plan")
+                                .font(scaledFont(size: fontScale.badgeSize, weight: .medium))
+                        }
+                        .foregroundStyle(.blue.opacity(0.7))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 5)
+            .background(
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(fg.opacity(0.04))
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func markdownContent(lines: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                renderLine(line)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .textSelection(.enabled)
+    }
+
+    @ViewBuilder
+    private func renderLine(_ line: String) -> some View {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+        if trimmed.hasPrefix("### ") {
+            Text(trimmed.dropFirst(4))
+                .font(scaledFont(size: fontScale.bodySize, weight: .semibold))
+                .foregroundStyle(fg.opacity(0.9))
+                .padding(.top, 2)
+        } else if trimmed.hasPrefix("## ") {
+            Text(trimmed.dropFirst(3))
+                .font(scaledFont(size: fontScale.bodySize, weight: .bold))
+                .foregroundStyle(fg.opacity(0.9))
+                .padding(.top, 3)
+        } else if trimmed.hasPrefix("# ") {
+            Text(trimmed.dropFirst(2))
+                .font(scaledFont(size: fontScale.bodySize + 2, weight: .bold))
+                .foregroundStyle(fg)
+                .padding(.top, 2)
+        } else if trimmed.hasPrefix("- ") {
+            HStack(alignment: .top, spacing: 4) {
+                Text("•")
+                    .font(scaledFont(size: fontScale.detailSize))
+                    .foregroundStyle(fg.opacity(0.5))
+                Text(LocalizedStringKey(String(trimmed.dropFirst(2))))
+                    .font(scaledFont(size: fontScale.detailSize))
+                    .foregroundStyle(fg.opacity(0.75))
+            }
+        } else if trimmed.hasPrefix("```") {
+            // Skip code fence markers
+            EmptyView()
+        } else if trimmed.isEmpty {
+            Spacer().frame(height: 2)
+        } else {
+            Text(LocalizedStringKey(trimmed))
+                .font(scaledFont(size: fontScale.detailSize))
+                .foregroundStyle(fg.opacity(0.75))
+        }
+    }
+
+    private func scaledFont(size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        if fontScale == .system { return .caption2 }
+        return .system(size: size, weight: weight)
     }
 }
 

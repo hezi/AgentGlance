@@ -30,73 +30,52 @@ struct MenuBarView: View {
             serverStatus
             Divider()
 
-            Toggle("Prevent Sleep", isOn: $appState.sleepPreventionEnabled)
-                .toggleStyle(.switch)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
+            // Native-style menu items
+            VStack(spacing: 0) {
+                menuItem("Prevent Sleep", icon: appState.sleepPreventionEnabled ? "checkmark" : nil) {
+                    appState.sleepPreventionEnabled.toggle()
+                }
 
-            Divider()
+                Divider().padding(.vertical, 2)
 
-            Menu("Test Events") {
-                Button("Working (Bash)") {
-                    appState.sendTestEvent("PreToolUse", toolName: "Bash")
+                #if DEBUG
+                Menu("Test Events") {
+                    Button("Working (Bash)") { appState.sendTestEvent("PreToolUse", toolName: "Bash") }
+                    Button("Working (Edit)") { appState.sendTestEvent("PreToolUse", toolName: "Edit") }
+                    Button("Awaiting Approval (Bash)") { appState.sendTestApproval(toolName: "Bash") }
+                    Button("Awaiting Approval (Edit)") { appState.sendTestApproval(toolName: "Edit") }
+                    Button("Question") { appState.sendTestQuestion() }
+                    Button("Plan Review") { appState.sendTestPlanReview() }
+                    Divider()
+                    Button("Needs Input") { appState.sendTestEvent("Stop") }
+                    Button("Complete") { appState.sendTestEvent("SessionEnd") }
+                    Divider()
+                    Button("New Session") { appState.sendTestEvent("SessionStart") }
                 }
-                Button("Working (Edit)") {
-                    appState.sendTestEvent("PreToolUse", toolName: "Edit")
+                .menuItemStyle()
+
+                Divider().padding(.vertical, 2)
+                #endif
+
+                menuItem("Setup Hooks...", icon: "link") {
+                    appState.showOnboarding()
                 }
-                Button("Awaiting Approval (Bash)") {
-                    appState.sendTestApproval(toolName: "Bash")
+                menuItem("Settings...", icon: "gearshape", shortcut: "⌘,") {
+                    appState.showSettings()
                 }
-                Button("Awaiting Approval (Edit)") {
-                    appState.sendTestApproval(toolName: "Edit")
+
+                Divider().padding(.vertical, 2)
+
+                menuItem("Report Issue...", icon: "ladybug") {
+                    reportIssue()
                 }
-                Button("Question") {
-                    appState.sendTestQuestion()
-                }
-                Divider()
-                Button("Needs Input") {
-                    appState.sendTestEvent("Stop")
-                }
-                Button("Complete") {
-                    appState.sendTestEvent("SessionEnd")
-                }
-                Divider()
-                Button("New Session") {
-                    appState.sendTestEvent("SessionStart")
+
+                Divider().padding(.vertical, 2)
+
+                menuItem("Quit AgentGlance", icon: "power", shortcut: "⌘Q") {
+                    NSApplication.shared.terminate(nil)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 4)
-
-            Button("Setup Hooks...") {
-                appState.showOnboarding()
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 4)
-
-            Button("Settings...") {
-                appState.showSettings()
-            }
-            .keyboardShortcut(",")
-            .padding(.horizontal, 12)
-            .padding(.vertical, 4)
-
-            Divider()
-
-            Button(action: reportIssue) {
-                Label("Report Issue...", systemImage: "ladybug")
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 4)
-
-            Divider()
-
-            Button("Quit AgentGlance") {
-                NSApplication.shared.terminate(nil)
-            }
-            .keyboardShortcut("q")
-            .padding(.horizontal, 12)
-            .padding(.vertical, 4)
         }
         .frame(width: 300)
     }
@@ -284,18 +263,6 @@ struct MenuBarView: View {
                     .lineLimit(4)
             }
 
-            // Navigate to terminal to answer
-            Button {
-                TerminalActivator.activate(session: session)
-                // Dismiss the pending decision so it falls through to the CLI
-                appState.hookServer.dismissPermission(sessionId: session.id)
-            } label: {
-                Label("Answer in Terminal", systemImage: "apple.terminal.fill")
-                    .font(.system(size: 10, weight: .semibold))
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.blue)
-            .controlSize(.small)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -412,6 +379,36 @@ struct MenuBarView: View {
 
     // MARK: - Helpers
 
+    // MARK: - Native-style menu item
+
+    @ViewBuilder
+    private func menuItem(_ title: String, icon: String? = nil, shortcut: String? = nil, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                if let icon {
+                    Image(systemName: icon)
+                        .frame(width: 16)
+                        .font(.system(size: 12))
+                } else {
+                    Spacer().frame(width: 16)
+                }
+                Text(title)
+                    .font(.system(size: 13))
+                Spacer()
+                if let shortcut {
+                    Text(shortcut)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .contentShape(Rectangle())
+            .padding(.horizontal, 12)
+            .padding(.vertical, 5)
+        }
+        .buttonStyle(.plain)
+        .background(MenuItemHoverStyle())
+    }
+
     private func stateIcon(_ state: SessionState) -> some View {
         Group {
             switch state {
@@ -511,6 +508,27 @@ struct MenuBarView: View {
             return String(content.prefix(5000)) + "\n\n... (truncated, full log at \(path))"
         }
         return content
+    }
+}
+
+// MARK: - Menu item hover highlight
+
+private struct MenuItemHoverStyle: View {
+    @State private var isHovered = false
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 4)
+            .fill(isHovered ? Color.accentColor.opacity(0.8) : .clear)
+            .onHover { isHovered = $0 }
+    }
+}
+
+private extension View {
+    func menuItemStyle() -> some View {
+        self
+            .font(.system(size: 13))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 5)
     }
 }
 

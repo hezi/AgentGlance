@@ -27,25 +27,27 @@ enum TerminalActivator {
         }
     }
 
-    /// Request automation permission by running a trivial AppleScript against Terminal.
-    /// Call this once from settings to trigger the macOS consent dialog.
+    /// Request automation permission for System Events and any running terminal apps.
+    /// Triggers macOS consent dialogs on first use.
     static func requestAutomationPermission() {
-        // Use osascript which handles TCC prompts more reliably than NSAppleScript
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        process.arguments = ["-e", """
+        // Request for System Events (general automation)
+        runOsascript("""
             tell application "System Events" to return name of first process
-        """]
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
+        """)
 
-        DispatchQueue.global(qos: .userInitiated).async {
-            do {
-                try process.run()
-                process.waitUntilExit()
-                logger.info("Automation permission request completed (exit: \(process.terminationStatus))")
-            } catch {
-                logger.error("Failed to request automation permission: \(error.localizedDescription)")
+        // Request for any running terminal that we support
+        let terminals: [(bundleId: String, name: String)] = [
+            ("com.mitchellh.ghostty", "Ghostty"),
+            ("com.apple.Terminal", "Terminal"),
+            ("com.googlecode.iterm2", "iTerm"),
+        ]
+
+        for terminal in terminals {
+            if NSRunningApplication.runningApplications(withBundleIdentifier: terminal.bundleId).first != nil {
+                runOsascript("""
+                    tell application "\(terminal.name)" to return name of front window
+                """)
+                break // only request for the first running terminal
             }
         }
     }

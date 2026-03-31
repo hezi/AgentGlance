@@ -340,8 +340,9 @@ final class SessionManager {
         // Special handling for ExitPlanMode: find and preview the plan file
         if event.tool_name == "ExitPlanMode" {
             session.currentTool = "ExitPlanMode"
-            let (preview, path) = Self.findLatestPlan()
+            let (preview, full, path) = Self.findLatestPlan()
             session.pendingPlanPreview = preview
+            session.pendingPlanFull = full
             session.pendingPlanPath = path
             session.pendingToolSummary = nil
         } else {
@@ -378,14 +379,13 @@ final class SessionManager {
 
     // MARK: - Plan Detection
 
-    /// Find the most recently modified plan file and extract a preview
-    nonisolated static func findLatestPlan() -> (preview: String?, path: String?) {
+    /// Find the most recently modified plan file and return preview, full content, and path
+    nonisolated static func findLatestPlan() -> (preview: String?, full: String?, path: String?) {
         let plansDir = NSString("~/.claude/plans").expandingTildeInPath
         let fm = FileManager.default
 
-        guard let files = try? fm.contentsOfDirectory(atPath: plansDir) else { return (nil, nil) }
+        guard let files = try? fm.contentsOfDirectory(atPath: plansDir) else { return (nil, nil, nil) }
 
-        // Find the most recently modified .md file
         var latestPath: String?
         var latestDate: Date = .distantPast
 
@@ -402,28 +402,29 @@ final class SessionManager {
         guard let path = latestPath,
               let data = fm.contents(atPath: path),
               let content = String(data: data, encoding: .utf8) else {
-            return (nil, nil)
+            return (nil, nil, nil)
         }
 
-        // Extract first ~6 lines as preview, skipping frontmatter
+        // Strip frontmatter for display
         let lines = content.components(separatedBy: .newlines)
-        var previewLines: [String] = []
+        var contentLines: [String] = []
         var inFrontmatter = false
 
         for line in lines {
-            if previewLines.isEmpty && line.trimmingCharacters(in: .whitespaces) == "---" {
+            if contentLines.isEmpty && line.trimmingCharacters(in: .whitespaces) == "---" {
                 inFrontmatter = !inFrontmatter
                 continue
             }
             if inFrontmatter { continue }
             let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.isEmpty && previewLines.isEmpty { continue }
-            previewLines.append(line)
-            if previewLines.count >= 6 { break }
+            if trimmed.isEmpty && contentLines.isEmpty { continue }
+            contentLines.append(line)
         }
 
-        let preview = previewLines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-        return (preview.isEmpty ? nil : preview, path)
+        let full = contentLines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        let preview = contentLines.prefix(15).joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return (preview.isEmpty ? nil : preview, full.isEmpty ? nil : full, path)
     }
 
     // MARK: - Tool Summary Extraction

@@ -26,6 +26,7 @@
 		A10017 /* ProcessScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10019 /* ProcessScanner.swift */; };
 		A10018 /* TerminalActivator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10020 /* TerminalActivator.swift */; };
 		A10019 /* AppIconViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10021 /* AppIconViews.swift */; };
+		A10021 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = PD0001 /* KeyboardShortcuts */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -58,6 +59,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A10021 /* KeyboardShortcuts in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -180,6 +182,9 @@
 			dependencies = (
 			);
 			name = AgentGlance;
+			packageProductDependencies = (
+				PD0001 /* KeyboardShortcuts */,
+			);
 			productName = AgentGlance;
 			productReference = P10001 /* AgentGlance.app */;
 			productType = "com.apple.product-type.application";
@@ -245,6 +250,9 @@
 				Base,
 			);
 			mainGroup = G10001;
+			packageReferences = (
+				PKG0001 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
+			);
 			productRefGroup = G10009 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -450,6 +458,24 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+/* Begin XCRemoteSwiftPackageReference section */
+		PKG0001 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		PD0001 /* KeyboardShortcuts */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = PKG0001 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;
+			productName = KeyboardShortcuts;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = PR1001 /* Project object */;
 }

@@ -19,11 +19,13 @@
 - **Approve or deny** tool use requests directly from the overlay — no terminal switching
 - **"Always Allow"** to add permanent permission rules for trusted commands
 - **Answer questions** inline when your agent asks via AskUserQuestion
-- **Review plans** inline when your agent proposes an implementation
+- **Review plans** with rendered markdown preview, expandable to read the full plan
 - **Clickable URLs** for WebFetch and WebSearch — see what your agent is browsing
-- **Jump to the right terminal tab** with one click or global hotkey (Ghostty, Terminal.app, iTerm2, Kitty)
+- **Keyboard navigation** — configurable global hotkey opens the overlay, then navigate with arrow keys or number keys
+- **Jump to the right terminal tab** with one click (Ghostty, Terminal.app, iTerm2, Kitty)
 - **Open project folder** in Finder from any session row
 - **Multi-monitor support** — pin to a specific screen or follow your cursor
+- **Notch-aware** — automatically positions below the hardware notch on MacBook Pro
 - **Draggable pill** — reposition anywhere, snaps back to center
 - **Pin mode** — keep the overlay expanded while you work
 - **Liquid Glass** translucent mode with adjustable frost
@@ -58,7 +60,7 @@ xcodebuild -project AgentGlance.xcodeproj -scheme AgentGlance -configuration Rel
 
 ### 2. Add hooks to Claude Code
 
-Add the following to `~/.claude/settings.json` (or use the built-in **Setup Hooks** button in the app):
+Add the following to `~/.claude/settings.json` (or use the built-in **Setup Hooks** button — shown automatically on first launch):
 
 ```json
 {
@@ -176,6 +178,8 @@ Hover to expand and see all active sessions. Click any session to jump to its te
 
 When expanded, the header shows a **pin** button (keeps the overlay open) and a **settings** button.
 
+The overlay automatically positions below the hardware notch on MacBook Pro models.
+
 ### Permission Control
 
 When your agent needs approval to run a tool, the overlay shows the tool name and command/file path with action buttons:
@@ -194,13 +198,31 @@ When your agent asks a question via `AskUserQuestion`, the overlay displays the 
 ### Plan Review
 
 When your agent proposes an implementation plan (`ExitPlanMode`), the overlay shows a blue-themed card with:
-- A preview of the first few lines of the plan
+- A **rendered markdown preview** of the plan (headings, bullet points, inline formatting)
+- **"Show full plan"** button to expand and read the entire plan in a scrollable view
 - **Approve** / **Reject** buttons
-- **Open** button to view the full plan in your editor
+- **Open** button to view the full plan file in your editor
 
 ### Clickable URLs & Search Queries
 
 When your agent uses `WebFetch`, the URL is displayed as a clickable blue link. When it uses `WebSearch`, the search query links to a Google search. Both work in the approval card and in the session row while the tool is running.
+
+### Keyboard Navigation
+
+Press the global hotkey (default **⌘⇧C**) to expand the overlay and enter keyboard navigation mode. Two modes are available (configurable in Settings):
+
+**Arrow Keys mode** (default):
+- `↑`/`↓` — move between session rows
+- `←`/`→` — cycle through actions for the focused row
+- `Return` — execute the focused action
+- `Escape` — go back one level, then collapse
+
+**Number Keys mode:**
+- `1-9` — select a row by number (badges shown)
+- `1-9` again — execute an action by number
+- `Escape` — go back one level, then collapse
+
+Actions include Allow/Deny/Skip for approvals, answer options for questions, Approve/Reject for plans, and Terminal/Folder for regular sessions.
 
 ### Terminal Navigation
 
@@ -213,7 +235,7 @@ Click any session row to activate the correct terminal tab. The app detects whic
 | iTerm2 | AppleScript — matches by TTY device |
 | Kitty | `kitten @ focus-window --match pid:<pid>` |
 
-Requires Automation permission (grant via Settings > Permissions).
+Requires Automation permission (grant via Settings > Permissions or on first launch).
 
 ### Draggable Pill
 
@@ -227,10 +249,6 @@ Choose which display the overlay appears on:
 - **Follow Cursor** — moves to whichever screen your cursor is on
 - **Specific Screen** — pick a connected display from the list
 
-### Global Hotkey
-
-Press **Option+Shift+C** from anywhere to jump to the most urgent session's terminal. Sessions are prioritized: approval needed > working > ready > idle.
-
 ### Sleep Prevention
 
 Toggle in settings to prevent macOS from sleeping while any coding agent session is actively working.
@@ -238,6 +256,13 @@ Toggle in settings to prevent macOS from sleeping while any coding agent session
 ### Process Detection
 
 On launch, AgentGlance reads `~/.claude/sessions/*.json` to detect already-running Claude Code sessions. No need to restart your sessions — they appear immediately with correct names and elapsed times.
+
+### First Launch
+
+On first launch, AgentGlance:
+- Opens the **onboarding window** with hooks JSON to copy into your Claude Code settings
+- Requests **notification permission** for session alerts
+- Requests **automation permission** for terminal tab control
 
 ## Settings
 
@@ -249,6 +274,8 @@ On launch, AgentGlance reads `~/.claude/sessions/*.json` to detect already-runni
 | Play sound | On | Alert sound on state changes |
 | Auto-expand on approval | Off | Auto-expand overlay when approval needed |
 | Show all queued approvals | Off | Show all pending approvals at once |
+| Global hotkey | ⌘⇧C | Configurable shortcut to open overlay with keyboard nav |
+| Keyboard navigation | Arrow Keys | Navigation mode: Arrow Keys or Number Keys |
 | Launch at login | Off | Start AgentGlance when you log in |
 
 ### Appearance
@@ -273,7 +300,7 @@ On launch, AgentGlance reads `~/.claude/sessions/*.json` to detect already-runni
 AgentGlance/
   App/
     AgentGlanceApp.swift       # @main, MenuBarExtra entry point
-    AppState.swift              # Central coordinator, window management, global hotkey
+    AppState.swift              # Central coordinator, window management, hotkey, keyboard nav
   Models/
     Session.swift               # Session state machine and model
     HookEvent.swift             # Hook payload types and JSON decoding
@@ -289,15 +316,15 @@ AgentGlance/
   Views/
     NotchOverlay.swift          # Floating overlay with expand/collapse animations
     MenuBarView.swift           # Menu bar dropdown with session list and controls
-    SettingsView.swift          # Settings window (General, Appearance, Server, Permissions)
+    SettingsView.swift          # Settings window (General, Appearance, Server, Permissions, Debug)
     OnboardingView.swift        # Hooks setup guide with copy-to-clipboard
     AppIconViews.swift          # SwiftUI views used to generate the app icon
   Utilities/
-    NotchWindow.swift           # NSPanel with drag support and content-sized framing
-    Constants.swift             # Default port, UserDefaults keys, font scales
+    NotchWindow.swift           # NSPanel with drag, notch-aware positioning, content-sized framing
+    Constants.swift             # Default port, UserDefaults keys, font scales, keyboard nav types
 ```
 
-Zero external dependencies. Built entirely on Apple frameworks: Network, IOKit, UserNotifications, AppKit, SwiftUI.
+One dependency: [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) for global hotkey registration (via Carbon, no permissions required).
 
 ## License
 

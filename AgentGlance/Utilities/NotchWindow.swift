@@ -116,7 +116,8 @@ final class NotchWindow: NSPanel {
         let screenFrame = screen.frame
         let w = windowWidth
         let x = screenFrame.midX - w / 2
-        let y = screenFrame.maxY - windowHeight
+        // Use visibleFrame.maxY to position below menu bar + hardware notch
+        let y = screen.visibleFrame.maxY - windowHeight
         return NSPoint(x: x, y: y)
     }
 
@@ -128,11 +129,11 @@ final class NotchWindow: NSPanel {
         origin.x += offsetX
         origin.y += offsetY
 
-        // Clamp to screen bounds
+        // Clamp to screen bounds — use visibleFrame so pill can't be dragged behind notch
         let screen = targetScreen()
         let sf = screen.frame
         origin.x = max(sf.minX, min(origin.x, sf.maxX - w))
-        origin.y = max(sf.minY, min(origin.y, sf.maxY - windowHeight))
+        origin.y = max(sf.minY, min(origin.y, screen.visibleFrame.maxY - windowHeight))
 
         setFrame(NSRect(x: origin.x, y: origin.y, width: w, height: windowHeight), display: true)
     }
@@ -149,7 +150,7 @@ final class NotchWindow: NSPanel {
             if event.type == .mouseMoved {
                 updateMousePassthrough()
                 checkScreenChange()
-            } else if event.type == .leftMouseDown, !geometry.isDragging {
+            } else if event.type == .leftMouseDown, !geometry.isDragging, event.window === self {
                 handleMouseDown(event)
             }
             return event

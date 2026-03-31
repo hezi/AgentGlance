@@ -23,7 +23,44 @@ enum Constants {
         static let selectedScreenID = "selectedScreenID"
         static let pillOffsetX = "pillOffsetX"
         static let pillOffsetY = "pillOffsetY"
+        static let hotkeyModifiers = "hotkeyModifiers"
+        static let hotkeyKey = "hotkeyKey"
+        static let keyboardNavMode = "keyboardNavMode"
     }
+}
+
+enum KeyboardNavMode: String, CaseIterable, Identifiable {
+    case arrows = "arrows"
+    case numbers = "numbers"
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .arrows: "Arrow Keys"
+        case .numbers: "Number Keys"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .arrows: "↑↓ to select rows, ←→ to select actions, Return to execute"
+        case .numbers: "Press row number, then action number"
+        }
+    }
+}
+
+import KeyboardShortcuts
+
+extension KeyboardShortcuts.Name {
+    static let toggleOverlay = Self("toggleOverlay", default: .init(.c, modifiers: [.command, .shift]))
+}
+
+/// An action exposed by a session row for keyboard navigation
+struct RowAction {
+    let label: String
+    let icon: String?
+    let execute: () -> Void
 }
 
 enum NotchFontScale: String, CaseIterable, Identifiable {

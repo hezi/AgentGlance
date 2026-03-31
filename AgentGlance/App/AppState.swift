@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import Combine
+import KeyboardShortcuts
 
 @Observable
 @MainActor
@@ -20,12 +21,80 @@ final class AppState {
     private var notchWindow: NotchWindow?
     private var onboardingWindow: NSWindow?
     private var settingsWindow: NSWindow?
-    private var globalHotkeyMonitor: Any?
+    private var localKeyMonitor: Any?
     private var appearanceObserver: AnyCancellable?
     private var screenModeObserver: AnyCancellable?
 
     /// Posted when the notch should auto-expand (e.g. approval came in)
     var shouldAutoExpand = false
+
+    /// Keyboard navigation is active (overlay is focused and receiving key events)
+    var isKeyboardNavActive = false
+    var focusedRowIndex: Int?
+    var focusedActionIndex: Int?
+
+    func actionsForFocusedRow() -> [RowAction] {
+        guard let rowIndex = focusedRowIndex,
+              rowIndex < sessionManager.activeSessions.count else { return [] }
+        let session = sessionManager.activeSessions[rowIndex]
+
+        switch session.state {
+        case .awaitingApproval where session.currentTool == "AskUserQuestion":
+            // Each question option becomes an action
+            guard let pending = hookServer.nextPending(for: session.id) else { return [] }
+            let questions = pending.questions
+            var actions: [RowAction] = []
+            for q in questions {
+                for option in q.options {
+                    actions.append(RowAction(label: option, icon: nil) {
+                        self.hookServer.answerQuestion(sessionId: session.id, answers: [q.questionText: option])
+                    })
+                }
+            }
+            return actions
+        case .awaitingApproval where session.currentTool == "ExitPlanMode":
+            var actions = [
+                RowAction(label: "Approve", icon: "checkmark") {
+                    self.hookServer.allowPermission(sessionId: session.id)
+                },
+                RowAction(label: "Reject", icon: "xmark") {
+                    self.hookServer.denyPermission(sessionId: session.id, message: "Plan rejected")
+                },
+            ]
+            if session.pendingPlanPath != nil {
+                actions.append(RowAction(label: "Open", icon: "arrow.up.right.square") {
+                    if let path = session.pendingPlanPath {
+                        NSWorkspace.shared.open(URL(fileURLWithPath: path))
+                    }
+                })
+            }
+            return actions
+        case .awaitingApproval:
+            return [
+                RowAction(label: "Allow", icon: "checkmark") {
+                    self.hookServer.allowPermission(sessionId: session.id)
+                },
+                RowAction(label: "Always", icon: nil) {
+                    self.hookServer.allowAlwaysPermission(sessionId: session.id)
+                },
+                RowAction(label: "Deny", icon: "xmark") {
+                    self.hookServer.denyPermission(sessionId: session.id)
+                },
+                RowAction(label: "Skip", icon: nil) {
+                    self.hookServer.dismissPermission(sessionId: session.id)
+                },
+            ]
+        default:
+            return [
+                RowAction(label: "Terminal", icon: "apple.terminal") {
+                    TerminalActivator.activate(session: session)
+                },
+                RowAction(label: "Folder", icon: "folder") {
+                    NSWorkspace.shared.open(URL(fileURLWithPath: session.cwd))
+                },
+            ]
+        }
+    }
 
     init() {
         let port = UInt16(UserDefaults.standard.integer(forKey: Constants.UserDefaultsKeys.port))
@@ -40,6 +109,15 @@ final class AppState {
         registerGlobalHotkey()
         observeAppearanceChanges()
         observeScreenModeChanges()
+
+        // First launch: show onboarding and request permissions
+        if !UserDefaults.standard.bool(forKey: Constants.UserDefaultsKeys.hasCompletedOnboarding) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.showOnboarding()
+                // Request automation permission (triggers macOS consent dialog)
+                TerminalActivator.requestAutomationPermission()
+            }
+        }
     }
 
     private func setupBindings() {
@@ -130,8 +208,17 @@ final class AppState {
 
     // MARK: - Testing
 
+    private struct TestSession {
+        let id: String
+        let cwd: String
+        let name: String
+
+        static let claude = TestSession(id: "test-claude", cwd: "/Users/demo/Projects/MyApp", name: "MyApp")
+        static let codex = TestSession(id: "test-codex", cwd: "/Users/demo/Projects/Backend", name: "Backend")
+        static let gemini = TestSession(id: "test-gemini", cwd: "/Users/demo/Projects/Frontend", name: "Frontend")
+    }
+
     func sendTestEvent(_ eventName: String, toolName: String? = nil) {
-        // Build realistic tool_input for testing
         var toolInput: JSONValue? = nil
         if let toolName {
             switch toolName {
@@ -147,8 +234,8 @@ final class AppState {
         }
 
         let payload = HookPayload(
-            session_id: "test-session",
-            cwd: "/Users/demo/Projects/MyApp",
+            session_id: TestSession.claude.id,
+            cwd: TestSession.claude.cwd,
             hook_event_name: eventName,
             tool_name: toolName,
             tool_input: toolInput
@@ -158,17 +245,16 @@ final class AppState {
 
     func sendTestNotification(type: String) {
         let payload = HookPayload(
-            session_id: "test-session",
-            cwd: "/Users/demo/Projects/MyApp",
+            session_id: TestSession.claude.id,
+            cwd: TestSession.claude.cwd,
             hook_event_name: "Notification",
             notification_type: type
         )
         sessionManager.handleEvent(payload)
     }
 
-    /// Simulate a full approval request: sets the session state and queues a mock
-    /// PendingDecision so Allow/Deny buttons appear in the UI.
     func sendTestApproval(toolName: String) {
+        let session = TestSession.claude
         var toolInput: JSONValue? = nil
         var toolSummary: String? = nil
         switch toolName {
@@ -178,23 +264,20 @@ final class AppState {
         case "Edit":
             toolInput = .object(["file_path": .string("/Users/demo/Projects/MyApp/src/components/Header.swift")])
             toolSummary = ".../components/Header.swift"
-        case "Write":
-            toolInput = .object(["file_path": .string("/Users/demo/Projects/MyApp/README.md")])
-            toolSummary = ".../MyApp/README.md"
         default:
             break
         }
 
         let payload = HookPayload(
-            session_id: "test-session",
-            cwd: "/Users/demo/Projects/MyApp",
+            session_id: session.id,
+            cwd: session.cwd,
             hook_event_name: "PermissionRequest",
             tool_name: toolName,
             tool_input: toolInput
         )
         sessionManager.handleEvent(payload)
         hookServer.addMockPending(
-            sessionId: "test-session",
+            sessionId: session.id,
             toolName: toolName,
             toolInput: toolInput,
             toolSummary: toolSummary
@@ -202,6 +285,7 @@ final class AppState {
     }
 
     func sendTestQuestion() {
+        let session = TestSession.codex
         let toolInput: JSONValue = .object([
             "questions": .array([
                 .object([
@@ -210,7 +294,8 @@ final class AppState {
                     "options": .array([
                         .object(["label": .string("PostgreSQL"), "description": .string("Relational, battle-tested")]),
                         .object(["label": .string("SQLite"), "description": .string("Embedded, zero config")]),
-                        .object(["label": .string("MongoDB"), "description": .string("Document store")])
+                        .object(["label": .string("MongoDB"), "description": .string("Document store")]),
+                        .object(["label": .string("Redis"), "description": .string("In-memory, fast")])
                     ]),
                     "multiSelect": .bool(false)
                 ])
@@ -219,19 +304,45 @@ final class AppState {
         ])
 
         let payload = HookPayload(
-            session_id: "test-session",
-            cwd: "/Users/demo/Projects/MyApp",
+            session_id: session.id,
+            cwd: session.cwd,
             hook_event_name: "PermissionRequest",
             tool_name: "AskUserQuestion",
             tool_input: toolInput
         )
         sessionManager.handleEvent(payload)
         hookServer.addMockPending(
-            sessionId: "test-session",
+            sessionId: session.id,
             toolName: "AskUserQuestion",
             toolInput: toolInput,
             toolSummary: "Which database should we use?"
         )
+    }
+
+    func sendTestPlanReview() {
+        let session = TestSession.gemini
+        let payload = HookPayload(
+            session_id: session.id,
+            cwd: session.cwd,
+            hook_event_name: "PermissionRequest",
+            tool_name: "ExitPlanMode"
+        )
+        sessionManager.handleEvent(payload)
+        hookServer.addMockPending(
+            sessionId: session.id,
+            toolName: "ExitPlanMode",
+            toolInput: nil,
+            toolSummary: nil
+        )
+
+        // Ensure plan data is set (handlePermissionRequest may have been called
+        // before the session was observable by the UI)
+        if let s = sessionManager.sessions[session.id] {
+            let (preview, full, path) = SessionManager.findLatestPlan()
+            s.pendingPlanPreview = preview
+            s.pendingPlanFull = full
+            s.pendingPlanPath = path
+        }
     }
 
     // MARK: - Sound
@@ -257,6 +368,7 @@ final class AppState {
             defer: false
         )
         window.title = "Setup Claude Code Hooks"
+        window.isReleasedWhenClosed = false
         window.appearance = AppearanceHelper.nsAppearance()
         window.contentView = NSHostingView(rootView: view)
         window.center()
@@ -269,19 +381,167 @@ final class AppState {
         onboardingWindow = nil
     }
 
-    // MARK: - Global Hotkey (⌥⇧C)
+    // MARK: - Global Hotkey (via KeyboardShortcuts)
 
-    private func registerGlobalHotkey() {
-        // ⌥⇧C → jump to the most urgent session's terminal
-        globalHotkeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            // Check for ⌥⇧C (option + shift + C)
-            guard event.modifierFlags.contains([.option, .shift]),
-                  event.charactersIgnoringModifiers?.lowercased() == "c" else { return }
-
+    func registerGlobalHotkey() {
+        KeyboardShortcuts.onKeyDown(for: .toggleOverlay) { [weak self] in
             Task { @MainActor [weak self] in
-                self?.jumpToMostUrgentSession()
+                self?.activateOverlayWithKeyboard()
             }
         }
+    }
+
+    func activateOverlayWithKeyboard() {
+        guard !sessionManager.activeSessions.isEmpty else { return }
+        shouldAutoExpand = true
+        isKeyboardNavActive = true
+        let navMode = KeyboardNavMode(rawValue:
+            UserDefaults.standard.string(forKey: Constants.UserDefaultsKeys.keyboardNavMode) ?? "arrows"
+        ) ?? .arrows
+        // Arrow mode starts with first row focused; number mode starts with no row (shows badges)
+        focusedRowIndex = navMode == .arrows ? 0 : nil
+        focusedActionIndex = nil
+        NSApp.activate(ignoringOtherApps: true)
+        notchWindow?.makeKeyAndOrderFront(nil)
+        installKeyMonitor()
+    }
+
+    func deactivateKeyboardNav() {
+        isKeyboardNavActive = false
+        focusedRowIndex = nil
+        focusedActionIndex = nil
+        removeKeyMonitor()
+        NSApp.deactivate()
+    }
+
+    private func installKeyMonitor() {
+        guard localKeyMonitor == nil else { return }
+        localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, self.isKeyboardNavActive else { return event }
+            // Don't intercept keys when settings or other windows are key
+            if let keyWindow = NSApp.keyWindow, keyWindow !== self.notchWindow {
+                return event
+            }
+            if self.handleKeyEvent(event) { return nil }
+            return event
+        }
+    }
+
+    private func removeKeyMonitor() {
+        if let monitor = localKeyMonitor {
+            NSEvent.removeMonitor(monitor)
+            localKeyMonitor = nil
+        }
+    }
+
+    private func handleKeyEvent(_ event: NSEvent) -> Bool {
+        let key = event.keyCode
+        let navMode = KeyboardNavMode(rawValue:
+            UserDefaults.standard.string(forKey: Constants.UserDefaultsKeys.keyboardNavMode) ?? "arrows"
+        ) ?? .arrows
+
+        // Escape — cascade back
+        if key == 53 {
+            if focusedActionIndex != nil {
+                focusedActionIndex = nil
+            } else if focusedRowIndex != nil {
+                focusedRowIndex = nil
+            } else {
+                shouldAutoExpand = false
+                deactivateKeyboardNav()
+            }
+            return true
+        }
+
+        switch navMode {
+        case .arrows: return handleArrowMode(keyCode: key)
+        case .numbers: return handleNumberMode(event: event)
+        }
+    }
+
+    private func handleArrowMode(keyCode: UInt16) -> Bool {
+        let count = sessionManager.activeSessions.count
+        guard count > 0 else { return false }
+
+        switch keyCode {
+        case 126: // Up
+            if let idx = focusedRowIndex {
+                focusedRowIndex = max(0, idx - 1)
+                focusedActionIndex = nil
+            } else {
+                focusedRowIndex = count - 1
+            }
+            return true
+
+        case 125: // Down
+            if let idx = focusedRowIndex {
+                focusedRowIndex = min(count - 1, idx + 1)
+                focusedActionIndex = nil
+            } else {
+                focusedRowIndex = 0
+            }
+            return true
+
+        case 123: // Left
+            if focusedRowIndex != nil {
+                let actionCount = actionsForFocusedRow().count
+                if let idx = focusedActionIndex {
+                    focusedActionIndex = max(0, idx - 1)
+                } else if actionCount > 0 {
+                    focusedActionIndex = actionCount - 1
+                }
+            }
+            return true
+
+        case 124: // Right
+            if focusedRowIndex != nil {
+                let actionCount = actionsForFocusedRow().count
+                if let idx = focusedActionIndex {
+                    focusedActionIndex = min(actionCount - 1, idx + 1)
+                } else if actionCount > 0 {
+                    focusedActionIndex = 0
+                }
+            }
+            return true
+
+        case 36: // Return
+            if let actionIdx = focusedActionIndex {
+                let actions = actionsForFocusedRow()
+                if actionIdx < actions.count {
+                    actions[actionIdx].execute()
+                    shouldAutoExpand = false
+                    deactivateKeyboardNav()
+                }
+            } else if focusedRowIndex != nil {
+                focusedActionIndex = 0
+            }
+            return true
+
+        default:
+            return false
+        }
+    }
+
+    private func handleNumberMode(event: NSEvent) -> Bool {
+        guard let char = event.charactersIgnoringModifiers,
+              let num = Int(char), num >= 1, num <= 9 else { return false }
+
+        let index = num - 1
+
+        if focusedRowIndex == nil {
+            if index < sessionManager.activeSessions.count {
+                focusedRowIndex = index
+                focusedActionIndex = nil
+            }
+        } else {
+            let actions = actionsForFocusedRow()
+            if index < actions.count {
+                actions[index].execute()
+                shouldAutoExpand = false
+                deactivateKeyboardNav()
+            }
+        }
+        return true
     }
 
     private func observeAppearanceChanges() {
@@ -317,10 +577,6 @@ final class AppState {
         notchWindow?.positionAtNotch()
     }
 
-    private func jumpToMostUrgentSession() {
-        guard let session = sessionManager.activeSessions.first else { return }
-        TerminalActivator.activate(session: session)
-    }
 
     func showSettings() {
         if let window = settingsWindow {

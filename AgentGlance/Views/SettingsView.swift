@@ -1,8 +1,12 @@
 import SwiftUI
 import ServiceManagement
+import KeyboardShortcuts
 
 enum SettingsTab: String, CaseIterable, Identifiable {
     case general, appearance, server, permissions
+    #if DEBUG
+    case debug
+    #endif
 
     var id: String { rawValue }
 
@@ -12,6 +16,9 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .appearance: "Appearance"
         case .server: "Server"
         case .permissions: "Permissions"
+        #if DEBUG
+        case .debug: "Debug"
+        #endif
         }
     }
 
@@ -21,6 +28,9 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .appearance: "textformat.size"
         case .server: "network"
         case .permissions: "lock.shield"
+        #if DEBUG
+        case .debug: "ant"
+        #endif
         }
     }
 }
@@ -46,6 +56,9 @@ struct SettingsView: View {
                 case .appearance: AppearancePane()
                 case .server: ServerPane(appState: appState)
                 case .permissions: PermissionsPane()
+                #if DEBUG
+                case .debug: DebugPane(appState: appState)
+                #endif
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -63,6 +76,7 @@ private struct GeneralPane: View {
     @AppStorage(Constants.UserDefaultsKeys.showAllApprovals) private var showAllApprovals = false
     @AppStorage(Constants.UserDefaultsKeys.screenSelectionMode) private var screenMode = "mainScreen"
     @AppStorage(Constants.UserDefaultsKeys.selectedScreenID) private var selectedScreenID = ""
+    @AppStorage(Constants.UserDefaultsKeys.keyboardNavMode) private var navMode = KeyboardNavMode.arrows.rawValue
     @State private var launchAtLogin = false
 
     var body: some View {
@@ -99,6 +113,31 @@ private struct GeneralPane: View {
                 Toggle("Play sound on notifications", isOn: $soundEnabled)
                 Toggle("Auto-expand notch on approval requests", isOn: $autoExpand)
                 Toggle("Show all queued approvals at once", isOn: $showAllApprovals)
+            }
+
+            Section("Hotkey") {
+                LabeledContent("Global hotkey") {
+                    HStack(spacing: 8) {
+                        KeyboardShortcuts.Recorder(for: .toggleOverlay)
+
+                        if KeyboardShortcuts.getShortcut(for: .toggleOverlay) != KeyboardShortcuts.Name.toggleOverlay.defaultShortcut {
+                            Button("Reset") {
+                                KeyboardShortcuts.reset(.toggleOverlay)
+                            }
+                            .controlSize(.small)
+                        }
+                    }
+                }
+
+                Picker("Keyboard navigation", selection: $navMode) {
+                    ForEach(KeyboardNavMode.allCases) { mode in
+                        Text(mode.label).tag(mode.rawValue)
+                    }
+                }
+
+                Text(KeyboardNavMode(rawValue: navMode)?.description ?? "")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Startup") {
@@ -167,7 +206,7 @@ private struct AppearancePane: View {
 
             Section("Expanded View") {
                 LabeledContent("Width: \(Int(expandedWidth))px") {
-                    Slider(value: $expandedWidth, in: 280...maxExpandedWidth, step: 10)
+                    Slider(value: $expandedWidth, in: 280...maxExpandedWidth+280, step: 10)
                         .frame(width: 180)
                 }
             }
@@ -425,6 +464,8 @@ private struct PreviewGlassModifier: ViewModifier {
     }
 }
 
+// MARK: - Hotkey Recorder
+
 // MARK: - Server
 
 private struct ServerPane: View {
@@ -522,6 +563,64 @@ private struct PermissionsPane: View {
         .formStyle(.grouped)
     }
 }
+
+// MARK: - Debug (DEBUG builds only)
+
+#if DEBUG
+private struct DebugPane: View {
+    @Bindable var appState: AppState
+
+    var body: some View {
+        Form {
+            Section("Test Sessions") {
+                Button("Working (Bash)") { appState.sendTestEvent("PreToolUse", toolName: "Bash") }
+                Button("Working (Edit)") { appState.sendTestEvent("PreToolUse", toolName: "Edit") }
+                Button("New Session") { appState.sendTestEvent("SessionStart") }
+            }
+
+            Section("Test Approvals") {
+                Button("Approval (Bash)") { appState.sendTestApproval(toolName: "Bash") }
+                Button("Approval (Edit)") { appState.sendTestApproval(toolName: "Edit") }
+            }
+
+            Section("Test Interactions") {
+                Button("Question") { appState.sendTestQuestion() }
+                Button("Plan Review") { appState.sendTestPlanReview() }
+            }
+
+            Section("Test State Changes") {
+                Button("Ready (Stop)") { appState.sendTestEvent("Stop") }
+                Button("Complete (SessionEnd)") { appState.sendTestEvent("SessionEnd") }
+            }
+
+            Section("Server") {
+                LabeledContent("Port") {
+                    Text("\(appState.hookServer.port)")
+                        .foregroundStyle(.secondary)
+                }
+                LabeledContent("Status") {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(appState.hookServer.isRunning ? .green : .red)
+                            .frame(width: 8, height: 8)
+                        Text(appState.hookServer.isRunning ? "Running" : "Not running")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                LabeledContent("Active sessions") {
+                    Text("\(appState.sessionManager.activeSessions.count)")
+                        .foregroundStyle(.secondary)
+                }
+                LabeledContent("Pending decisions") {
+                    Text("\(appState.hookServer.pendingDecisions.values.flatMap { $0 }.count)")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+#endif
 
 // MARK: - Previews
 

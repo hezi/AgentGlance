@@ -21,8 +21,9 @@ final class Session: Identifiable {
     /// Human-readable description of what the pending tool wants to do
     var pendingToolSummary: String?
 
-    /// For ExitPlanMode: preview of the plan content and path to the file
-    var pendingPlanPreview: String?
+    /// For ExitPlanMode: plan content and path to the file
+    var pendingPlanPreview: String?   // first ~15 lines for collapsed view
+    var pendingPlanFull: String?      // full markdown content for expanded view
     var pendingPlanPath: String?
 
     /// Optional display name from --resume flag
