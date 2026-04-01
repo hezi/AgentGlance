@@ -1236,7 +1236,7 @@ createPill(document.getElementById('hero-pill'), {
           summary: 'npm run build && npm test', time: '0m 12s', mode: 'plan' },
       ],
     });
-    showHint('Click Allow or Deny on the overlay →');
+    showHint('Click Allow or Deny on the overlay');
 
     const approvalAction = await waitForPillAction();
     await wait(300);
@@ -1288,7 +1288,7 @@ createPill(document.getElementById('hero-pill'), {
           options: ['PostgreSQL', 'SQLite', 'Redis'], time: '0m 28s' },
       ],
     });
-    showHint('Pick an option and click Submit →');
+    showHint('Pick an option and click Submit');
 
     await waitForPillAction();
     await wait(300);
