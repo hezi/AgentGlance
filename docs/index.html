@@ -12,6 +12,7 @@
     <meta name="twitter:card" content="summary">
     <link rel="icon" type="image/png" href="icon.png">
     <style>
+        /* ── Page theme ── */
         :root {
             --bg: #0a0a0a;
             --fg: #e8e8e8;
@@ -51,7 +52,7 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Hero */
+        /* ── Hero ── */
         .hero {
             text-align: center;
             padding: 80px 24px 48px;
@@ -59,18 +60,24 @@
             margin: 0 auto;
         }
 
+        .hero-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
         .hero img.icon {
-            width: 96px;
-            height: 96px;
-            border-radius: 20px;
-            margin-bottom: 24px;
+            width: 64px;
+            height: 64px;
+            border-radius: 14px;
         }
 
         .hero h1 {
             font-size: 48px;
             font-weight: 700;
             letter-spacing: -1px;
-            margin-bottom: 12px;
         }
 
         .hero .tagline {
@@ -93,7 +100,6 @@
             text-decoration: none;
             transition: opacity 0.2s;
         }
-
         .hero .cta:hover { opacity: 0.85; }
 
         .hero .cta-secondary {
@@ -106,7 +112,6 @@
             margin-left: 16px;
             transition: color 0.2s;
         }
-
         .hero .cta-secondary:hover { color: var(--fg); }
 
         .hero .platform {
@@ -116,28 +121,190 @@
             margin-top: 12px;
         }
 
-        /* Demo */
-        .demo {
-            text-align: center;
-            padding: 24px;
-            max-width: 560px;
+        /* ── Hero walkthrough ── */
+        .hero-stage {
+            max-width: 920px;
             margin: 0 auto;
+            padding: 32px 24px 0;
         }
 
-        .demo img {
-            width: 100%;
+        .hero-wallpaper {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d1b4e 25%, #1a3344 50%, #2b2145 75%, #1e3a5f 100%);
             border-radius: 16px;
-            border: 1px solid var(--card-border);
+            padding: 32px 28px;
+            position: relative;
+            overflow: hidden;
+        }
+        /* Subtle noise/depth overlay */
+        .hero-wallpaper::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at 30% 20%, rgba(100,180,255,0.08) 0%, transparent 60%),
+                        radial-gradient(ellipse at 70% 80%, rgba(180,100,255,0.06) 0%, transparent 60%);
+            pointer-events: none;
         }
 
-        /* Features */
+        @media (prefers-color-scheme: light) {
+            .hero-wallpaper {
+                background: linear-gradient(135deg, #c9daf8 0%, #d5c8e8 25%, #b8d4e3 50%, #cfc3e8 75%, #c9daf8 100%);
+            }
+            .hero-wallpaper::before {
+                background: radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.3) 0%, transparent 60%),
+                            radial-gradient(ellipse at 70% 80%, rgba(200,180,255,0.15) 0%, transparent 60%);
+            }
+        }
+
+        .hero-walkthrough {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 24px;
+            position: relative;
+        }
+
+        @media (max-width: 700px) {
+            .hero-walkthrough {
+                flex-direction: column;
+                align-items: center;
+                gap: 16px;
+            }
+            .hero-wallpaper { padding: 20px 16px; }
+        }
+
+        /* Fake terminal */
+        .fake-term {
+            width: 420px;
+            background: #1a1a1a;
+            border-radius: 10px;
+            border: 1px solid #333;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        @media (prefers-color-scheme: light) {
+            .fake-term { background: #1a1a1a; border-color: #444; } /* terminal stays dark */
+        }
+
+        .fake-term-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 14px;
+            background: #252525;
+            border-bottom: 1px solid #333;
+        }
+        .fake-term-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+        }
+        .fake-term-dot.red { background: #ff5f57; }
+        .fake-term-dot.yellow { background: #febc2e; }
+        .fake-term-dot.green { background: #28c840; }
+        .fake-term-title {
+            flex: 1;
+            text-align: center;
+            font-size: 11px;
+            color: #888;
+            font-family: 'SF Mono', ui-monospace, monospace;
+        }
+
+        .fake-term-body {
+            padding: 14px;
+            font-family: 'SF Mono', ui-monospace, monospace;
+            font-size: 12px;
+            line-height: 1.7;
+            color: #ccc;
+            height: 280px;
+            overflow-y: auto;
+            scrollbar-width: none; /* Firefox */
+        }
+        .fake-term-body::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+        .fake-term-body .prompt { color: #ccc; }
+        .fake-term-body .dim { color: #555; }
+        .fake-term-body .blue { color: #60a5fa; }
+        .fake-term-body .green { color: #4ade80; }
+        .fake-term-body .yellow { color: #facc15; }
+        .fake-term-body .white { color: #e8e8e8; font-weight: 600; }
+        .fake-term-body .indent { padding-left: 20px; }
+        .fake-term-body .result { color: #777; padding-left: 24px; }
+
+        /* Green bullet for tool calls (matches Claude Code) */
+        .fake-term-body .tool-line {
+            display: flex; align-items: baseline; gap: 6px;
+        }
+        .fake-term-body .tool-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: #4ade80; flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .fake-term-body .tool-dot.blue { background: #60a5fa; }
+        .fake-term-body .tool-name { color: #e8e8e8; font-weight: 600; }
+        .fake-term-body .tool-detail { color: #888; }
+
+        /* Claude response bullet */
+        .fake-term-body .response-line {
+            display: flex; align-items: baseline; gap: 6px;
+        }
+        .fake-term-body .resp-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: #e8e8e8; flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        /* Permission box */
+        .fake-term-body .perm-box {
+            border: 1px solid rgba(100, 200, 255, 0.3);
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin: 4px 0;
+        }
+        .fake-term-body .perm-title { color: #facc15; font-weight: 600; }
+        .fake-term-body .perm-desc { color: #777; font-size: 11px; }
+        .fake-term-body .perm-opt { color: #ccc; }
+        .fake-term-body .perm-opt .sel { color: #fff; font-weight: 600; }
+        .fake-term-body .perm-opt .arrow { color: #4ade80; }
+        .fake-term-body .perm-hint { color: #555; font-size: 11px; }
+
+        /* Question box */
+        .fake-term-body .q-line { color: #60a5fa; }
+        .fake-term-body .q-opt { color: #ccc; padding-left: 12px; }
+        .fake-term-body .q-opt .check { color: #4ade80; }
+        .fake-term-body .q-hint { color: #555; font-size: 11px; }
+
+        .fake-term-body .cursor {
+            display: inline-block;
+            width: 7px; height: 14px;
+            background: #ccc;
+            animation: blink 1s step-end infinite;
+            vertical-align: text-bottom;
+            margin-left: 2px;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .hero-pill-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 28px; /* align with terminal content area */
+        }
+
+        .hero-hint {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 12px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        .hero-hint.visible { opacity: 1; }
+
+        /* ── Features ── */
         .features {
             max-width: var(--max-width);
             margin: 0 auto;
             padding: 64px 24px;
         }
 
-        .features h2 {
+        .features > h2 {
             font-size: 14px;
             text-transform: uppercase;
             letter-spacing: 2px;
@@ -146,68 +313,58 @@
             text-align: center;
         }
 
+        .feature-section {
+            margin-bottom: 48px;
+        }
+
+        .feature-section h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .feature-section p {
+            font-size: 14px;
+            color: var(--muted);
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+
+        .feature-demo {
+            display: flex;
+            justify-content: center;
+            padding: 20px 0;
+        }
+
+        /* ── Feature grid (for non-demo features) ── */
         .feature-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 16px;
+            margin-top: 32px;
         }
 
-        .feature {
+        .feature-card {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
             border-radius: 12px;
             padding: 20px;
         }
 
-        .feature .dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 6px;
-            vertical-align: middle;
-        }
-
-        .feature h3 {
+        .feature-card h3 {
             font-size: 16px;
             font-weight: 600;
             margin-bottom: 6px;
         }
 
-        .feature p {
+        .feature-card p {
             font-size: 14px;
             color: var(--muted);
             line-height: 1.5;
         }
 
-        .feature.wide {
-            grid-column: 1 / -1;
-        }
+        .feature-card.wide { grid-column: 1 / -1; }
 
-        /* Traffic light dots */
-        .dot-green { background: var(--accent-green); }
-        .dot-yellow { background: var(--accent-yellow); }
-        .dot-red { background: var(--accent-red); }
-
-        /* Status bar */
-        .status-bar {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 24px;
-            padding: 20px;
-            margin-bottom: 8px;
-        }
-
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 13px;
-            color: var(--muted);
-        }
-
-        /* Terminals */
         .terminals {
             display: flex;
             gap: 12px;
@@ -232,7 +389,7 @@
             border: 1px solid var(--card-border);
         }
 
-        /* Setup */
+        /* ── Setup ── */
         .setup {
             max-width: var(--max-width);
             margin: 0 auto;
@@ -265,7 +422,6 @@
             overflow-x: auto;
         }
 
-        /* Footer */
         footer {
             text-align: center;
             padding: 48px 24px;
@@ -273,66 +429,364 @@
             color: var(--muted);
             font-size: 13px;
         }
-
         footer a {
             color: var(--muted);
             text-decoration: underline;
             text-decoration-color: var(--card-border);
         }
-
         footer a:hover { color: var(--fg); }
 
-        /* Responsive */
         @media (max-width: 600px) {
             .hero h1 { font-size: 32px; }
             .hero .tagline { font-size: 16px; }
             .feature-grid { grid-template-columns: 1fr; }
             .hero .cta-secondary { display: block; margin: 12px 0 0; }
         }
+
+        /* ═══════════════════════════════════════════════
+           AgentGlance Pill Component
+           ═══════════════════════════════════════════════ */
+        .ag { --pill-fg: 255,255,255; --pill-bg: #000; }
+        @media (prefers-color-scheme: light) {
+            .ag { --pill-fg: 0,0,0; --pill-bg: #fff; }
+        }
+
+        .ag .sf { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .ag .sf svg { display: block; }
+
+        .ag-wrap {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .ag-pill {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 36px;
+            padding: 0 16px;
+            border-radius: 18px;
+            background: var(--pill-bg);
+            cursor: pointer;
+            transition: width 0.35s cubic-bezier(0.4,0,0.2,1),
+                        border-radius 0.35s cubic-bezier(0.4,0,0.2,1);
+            overflow: hidden;
+            user-select: none;
+            position: relative;
+            z-index: 2;
+        }
+        .ag-pill.expanded {
+            border-radius: 20px 20px 0 0;
+        }
+
+        .ag-pill-header {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .ag-pill-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+        .ag-pill-label .text {
+            font-size: 11px;
+            font-weight: 500;
+            color: rgba(var(--pill-fg),0.8);
+        }
+
+        .ag-pill-buttons {
+            position: absolute;
+            left: 0; right: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .ag-pill.expanded .ag-pill-buttons {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .ag-pill-btn {
+            background: none;
+            border: none;
+            color: rgba(var(--pill-fg),0.35);
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            transition: color 0.15s;
+        }
+        .ag-pill-btn:hover { color: rgba(var(--pill-fg),0.6); }
+        .ag-pill-btn.pinned { color: #58a6ff; }
+        .ag-pill-btn svg { fill: currentColor; }
+
+        .ag-panel {
+            background: var(--pill-bg);
+            border-radius: 0 0 20px 20px;
+            padding: 2px 10px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease;
+            z-index: 1;
+        }
+        .ag-panel.visible { max-height: 600px; opacity: 1; }
+
+        /* ── Rows ── */
+        .ag .session-row {
+            display: flex; flex-direction: column; gap: 4px;
+            padding: 6px 8px; border-radius: 8px;
+            background: rgba(var(--pill-fg),0.06);
+            cursor: pointer; transition: background 0.15s;
+        }
+        .ag .session-row:hover { background: rgba(var(--pill-fg),0.1); }
+
+        .ag .session-row-main { display: flex; align-items: center; gap: 8px; }
+        .ag .session-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+        .ag .session-name { font-size: 11px; font-weight: 500; color: rgba(var(--pill-fg),1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ag .session-detail { font-size: 9px; color: rgba(var(--pill-fg),0.45); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ag .session-time { font-size: 10px; font-family: 'SF Mono', ui-monospace, monospace; color: rgba(var(--pill-fg),0.35); white-space: nowrap; }
+
+        .ag .session-actions { display: flex; gap: 4px; align-items: center; }
+        .ag .session-actions button {
+            background: none; border: none; color: rgba(var(--pill-fg),0.3);
+            cursor: pointer; padding: 2px; display: flex; align-items: center; transition: color 0.15s;
+        }
+        .ag .session-actions button:hover { color: rgba(var(--pill-fg),0.6); }
+        .ag .session-actions button svg { fill: currentColor; }
+
+        .ag .session-url {
+            display: flex; align-items: center; gap: 4px;
+            font-size: 10px; font-family: 'SF Mono', ui-monospace, monospace;
+            color: #58a6ff; text-decoration: underline; cursor: pointer; padding-left: 16px;
+        }
+        .ag .session-url svg { fill: #58a6ff; }
+
+        .ag .mode-badge {
+            font-size: 9px; font-weight: 500;
+            font-family: 'SF Mono', ui-monospace, monospace;
+            padding: 1px 5px; border-radius: 99px; white-space: nowrap;
+        }
+        .ag .mode-badge.plan { color: rgb(0,102,102); background: rgba(0,102,102,0.15); }
+        .ag .mode-badge.auto { color: rgb(150,108,30); background: rgba(150,108,30,0.15); }
+
+        /* Approval */
+        .ag .approval-row {
+            padding: 8px 10px; border-radius: 8px;
+            background: rgba(234,179,8,0.06);
+            border: 0.5px solid rgba(234,179,8,0.15);
+            display: flex; flex-direction: column; gap: 6px;
+        }
+        .ag .approval-header { display: flex; align-items: center; gap: 6px; }
+        .ag .approval-name { font-size: 11px; font-weight: 600; color: rgba(var(--pill-fg),1); }
+        .ag .header-terminal { color: rgba(var(--pill-fg),0.25); display: flex; align-items: center; }
+        .ag .header-terminal svg { fill: currentColor; }
+
+        .ag .tool-badge {
+            font-size: 9px; font-weight: 500; font-family: 'SF Mono', ui-monospace, monospace;
+            padding: 2px 6px; border-radius: 99px; margin-left: auto;
+        }
+        .ag .tool-badge.yellow { color: rgba(234,179,8,0.9); background: rgba(234,179,8,0.15); }
+        .ag .tool-badge.blue { color: rgba(88,166,255,0.9); background: rgba(88,166,255,0.15); }
+
+        .ag .tool-summary {
+            font-size: 10px; font-family: 'SF Mono', ui-monospace, monospace;
+            color: rgba(var(--pill-fg),0.7); padding: 4px 6px; border-radius: 5px;
+            background: rgba(var(--pill-fg),0.04);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        .ag .approval-actions { display: flex; align-items: center; gap: 6px; }
+
+        .ag .btn {
+            display: inline-flex; align-items: center; gap: 4px;
+            border: none; border-radius: 99px; padding: 5px 10px;
+            font-size: 10px; font-weight: 600; cursor: pointer;
+            transition: filter 0.15s; white-space: nowrap; font-family: inherit;
+        }
+        .ag .btn:hover { filter: brightness(1.15); }
+        .ag .btn svg { fill: currentColor; }
+
+        .ag .btn-allow { background: rgba(34,197,94,0.7); color: #fff; }
+        .ag .btn-always { background: none; color: rgba(34,197,94,0.8); font-weight: 500; padding: 5px 4px; }
+        .ag .btn-deny { background: rgba(239,68,68,0.5); color: #fff; }
+        .ag .btn-skip { background: none; color: rgba(var(--pill-fg),0.4); font-size: 9px; font-weight: 500; margin-left: auto; }
+        .ag .btn-approve { background: rgba(34,197,94,0.7); color: #fff; }
+        .ag .btn-reject { background: rgba(239,68,68,0.5); color: #fff; }
+        .ag .btn-submit { background: rgba(88,166,255,0.7); color: #fff; }
+
+        /* Question */
+        .ag .question-row {
+            padding: 8px 10px; border-radius: 8px;
+            background: rgba(88,166,255,0.06);
+            border: 0.5px solid rgba(88,166,255,0.15);
+            display: flex; flex-direction: column; gap: 6px;
+        }
+        .ag .question-header { display: flex; align-items: center; gap: 6px; }
+        .ag .question-icon { color: #58a6ff; display: flex; align-items: center; }
+        .ag .question-icon svg { fill: currentColor; }
+        .ag .question-text {
+            font-size: 10px; font-weight: 500; color: rgba(var(--pill-fg),0.85);
+            padding: 4px 6px; border-radius: 5px; background: rgba(var(--pill-fg),0.03);
+        }
+        .ag .option-chips { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 6px; }
+        .ag .option-chip {
+            font-size: 9px; padding: 4px 8px; border-radius: 6px;
+            background: rgba(var(--pill-fg),0.06);
+            border: 0.5px solid rgba(var(--pill-fg),0.1);
+            color: rgba(var(--pill-fg),0.7);
+            cursor: pointer; transition: all 0.15s; user-select: none;
+        }
+        .ag .option-chip:hover { background: rgba(var(--pill-fg),0.1); }
+        .ag .option-chip.selected {
+            background: rgba(88,166,255,0.7); border-color: #58a6ff;
+            color: #fff; font-weight: 600;
+        }
+
+        /* Plan */
+        .ag .plan-row {
+            padding: 8px 10px; border-radius: 8px;
+            background: rgba(88,166,255,0.06);
+            border: 0.5px solid rgba(88,166,255,0.15);
+            display: flex; flex-direction: column; gap: 6px;
+        }
+        .ag .plan-icon { color: #58a6ff; display: flex; align-items: center; }
+        .ag .plan-icon svg { fill: currentColor; }
+        .ag .plan-preview {
+            font-size: 9px; color: rgba(var(--pill-fg),0.75);
+            padding: 5px 6px; border-radius: 5px; background: rgba(var(--pill-fg),0.04); line-height: 1.5;
+        }
+        .ag .plan-preview .heading { font-weight: 600; color: rgba(var(--pill-fg),0.9); font-size: 10px; }
+        .ag .plan-preview .bullet { color: rgba(var(--pill-fg),0.5); margin-right: 4px; }
+        .ag .plan-actions { display: flex; align-items: center; gap: 8px; }
+        .ag .btn-open {
+            background: none; border: none; color: rgba(88,166,255,0.8);
+            font-size: 9px; font-weight: 500; cursor: pointer; margin-left: auto;
+            display: flex; align-items: center; gap: 3px; font-family: inherit;
+        }
+        .ag .btn-open svg { fill: currentColor; }
+        .ag .show-plan-btn {
+            background: none; border: none; color: rgba(88,166,255,0.7);
+            font-size: 9px; font-weight: 500; cursor: pointer;
+            display: flex; align-items: center; gap: 3px; padding: 0; font-family: inherit;
+        }
+        .ag .show-plan-btn svg { fill: currentColor; }
+
+        /* Indicators */
+        .ag .indicator { width: 10px; height: 10px; flex-shrink: 0; }
+        .ag .indicator-small { width: 8px; height: 8px; flex-shrink: 0; }
+
+        @keyframes ag-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .ag .spinner {
+            border-radius: 50%;
+            border: 1.5px solid transparent;
+            border-top-color: #22c55e; border-right-color: #22c55e; border-bottom-color: #22c55e;
+            border-left-color: transparent;
+            animation: ag-spin 0.8s linear infinite;
+        }
+
+        @keyframes ag-pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.6); opacity: 0.3; } }
+        .ag .pulse { position: relative; border-radius: 50%; }
+        .ag .pulse::after {
+            content: ''; position: absolute; inset: 0; border-radius: 50%;
+            animation: ag-pulse 1s ease-in-out infinite;
+        }
+        .ag .pulse-yellow { background: #eab308; }
+        .ag .pulse-yellow::after { background: rgba(234,179,8,0.3); }
+        .ag .pulse-red { background: #ef4444; }
+        .ag .pulse-red::after { background: rgba(239,68,68,0.3); }
+        .ag .dot-gray { border-radius: 50%; background: #6b7280; }
     </style>
 </head>
 <body>
 
     <section class="hero">
-        <img src="icon.png" alt="AgentGlance" class="icon">
-        <h1>AgentGlance</h1>
+        <div class="hero-title">
+            <img src="icon.png" alt="AgentGlance" class="icon">
+            <h1>AgentGlance</h1>
+        </div>
         <p class="tagline">Monitor your AI coding agents from a floating macOS overlay. Approve, answer, review — without breaking flow.</p>
-        <a href="https://github.com/hezi/AgentGlance" class="cta">
-            View on GitHub
-        </a>
-        <a href="https://github.com/hezi/AgentGlance/releases" class="cta-secondary">
-            Download latest release &rarr;
-        </a>
+        <a href="https://github.com/hezi/AgentGlance" class="cta">View on GitHub</a>
+        <a href="https://github.com/hezi/AgentGlance/releases" class="cta-secondary">Download latest release &rarr;</a>
         <span class="platform">macOS 14+ &middot; Apple Silicon &middot; Zero dependencies</span>
     </section>
 
-    <section class="demo">
-        <img src="demo.gif" alt="AgentGlance demo">
-    </section>
+    <!-- Hero: interactive walkthrough -->
+    <div class="hero-stage">
+        <div class="hero-wallpaper">
+            <div class="hero-walkthrough">
+                <div class="fake-term">
+                    <div class="fake-term-bar">
+                        <div class="fake-term-dot red"></div>
+                        <div class="fake-term-dot yellow"></div>
+                        <div class="fake-term-dot green"></div>
+                        <div class="fake-term-title">claude — ~/Projects/MyApp</div>
+                    </div>
+                    <div class="fake-term-body" id="term-body"></div>
+                </div>
+                <div class="hero-pill-col">
+                    <div class="ag" id="hero-pill"></div>
+                    <div class="hero-hint" id="hero-hint"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <section class="features">
         <h2>Features</h2>
 
-        <div class="status-bar">
-            <span class="status-item"><span class="dot dot-green"></span> Working</span>
-            <span class="status-item"><span class="dot dot-yellow"></span> Needs Approval</span>
-            <span class="status-item"><span class="dot dot-red"></span> Ready</span>
+        <!-- Approve or Deny -->
+        <div class="feature-section">
+            <h3>Approve or Deny</h3>
+            <p>Allow, Always Allow, Deny, or Skip tool requests directly from the overlay. No terminal switching needed.</p>
+            <div class="feature-demo">
+                <div class="ag" id="demo-approval"></div>
+            </div>
         </div>
 
+        <!-- Answer Questions -->
+        <div class="feature-section">
+            <h3>Answer Questions</h3>
+            <p>When your agent asks a question, pick from selectable options right in the overlay.</p>
+            <div class="feature-demo">
+                <div class="ag" id="demo-question"></div>
+            </div>
+        </div>
+
+        <!-- Review Plans -->
+        <div class="feature-section">
+            <h3>Review Plans</h3>
+            <p>See a rendered preview of proposed implementation plans. Approve, reject, or open the full file.</p>
+            <div class="feature-demo">
+                <div class="ag" id="demo-plan"></div>
+            </div>
+        </div>
+
+        <!-- Multi-session -->
+        <div class="feature-section">
+            <h3>Multiple Sessions</h3>
+            <p>Monitor all your agent sessions at once. Each row shows status, elapsed time, and quick actions.</p>
+            <div class="feature-demo">
+                <div class="ag" id="demo-multi"></div>
+            </div>
+        </div>
+
+        <!-- Other features grid -->
         <div class="feature-grid">
-            <div class="feature">
-                <h3>Approve or Deny</h3>
-                <p>Allow, Always Allow, Deny, or Skip tool requests directly from the overlay. No terminal switching.</p>
-            </div>
-            <div class="feature">
-                <h3>Answer Questions</h3>
-                <p>When your agent asks a question, pick from selectable options right in the overlay.</p>
-            </div>
-            <div class="feature">
-                <h3>Review Plans</h3>
-                <p>See a preview of proposed implementation plans. Approve, reject, or open the full file.</p>
-            </div>
-            <div class="feature">
+            <div class="feature-card">
                 <h3>Terminal Navigation</h3>
                 <p>Click any session to jump to the right terminal tab. Works with:</p>
                 <div class="terminals">
@@ -342,23 +796,19 @@
                     <span class="terminal-badge">Kitty</span>
                 </div>
             </div>
-            <div class="feature">
-                <h3>Clickable URLs</h3>
-                <p>WebFetch URLs and WebSearch queries show as clickable links. See what your agent is browsing.</p>
-            </div>
-            <div class="feature">
+            <div class="feature-card">
                 <h3>Multi-Monitor</h3>
                 <p>Pin to a specific screen, follow your cursor, or stick to the main display.</p>
             </div>
-            <div class="feature">
+            <div class="feature-card">
                 <h3>Global Hotkey</h3>
                 <p>Press <kbd>&#x2325;&#x21E7;C</kbd> from anywhere to jump to the most urgent session.</p>
             </div>
-            <div class="feature">
+            <div class="feature-card">
                 <h3>Customizable</h3>
                 <p>Font size, expanded width, Liquid Glass mode, dark/light theme, draggable position.</p>
             </div>
-            <div class="feature wide">
+            <div class="feature-card wide">
                 <h3>Coming Soon</h3>
                 <p>Support for <strong>OpenAI Codex CLI</strong> and <strong>Google Gemini CLI</strong> — same overlay, all your agents in one place.</p>
             </div>
@@ -383,6 +833,567 @@ open AgentGlance.xcodeproj<br>
             MIT License
         </p>
     </footer>
+
+<script>
+// ═══════════════════════════════════════════════
+// AgentGlance Pill Component
+// ═══════════════════════════════════════════════
+
+const SF = {
+  pin:      `<svg width="11" height="11" viewBox="0 0 16 16"><path d="M9.828 1.172a1 1 0 0 1 1.414 0l3.586 3.586a1 1 0 0 1-.707 1.707L12 6.586l-1.293 1.293.707.707a1 1 0 0 1 0 1.414l-1 1a1 1 0 0 1-1.414 0L7 9l-3.293 3.293a1 1 0 0 1-1.414-1.414L5.586 7.586 3.586 5.586a1 1 0 0 1 0-1.414l1-1a1 1 0 0 1 1.414 0l.707.707L8 2.586l-.121-2.121a1 1 0 0 1 .707-1.707l1.242.414z"/></svg>`,
+  pinFill:  `<svg width="11" height="11" viewBox="0 0 16 16"><path d="M9.828 1.172a1 1 0 0 1 1.414 0l3.586 3.586a1 1 0 0 1-.707 1.707L12 6.586l-1.293 1.293.707.707a1 1 0 0 1 0 1.414l-1 1a1 1 0 0 1-1.414 0L7 9l-3.293 3.293a1 1 0 0 1-1.414-1.414L5.586 7.586 3.586 5.586a1 1 0 0 1 0-1.414l1-1a1 1 0 0 1 1.414 0l.707.707L8 2.586l-.121-2.121a1 1 0 0 1 .707-1.707l1.242.414z"/></svg>`,
+  gear:     `<svg width="11" height="11" viewBox="0 0 20 20"><path d="M11.078 0c.294 0 .557.183.656.46l.573 1.608c.347.13.68.29.997.476l1.588-.636a.694.694 0 0 1 .774.2l1.226 1.226a.694.694 0 0 1 .2.774l-.636 1.588c.187.317.346.65.476.997l1.608.573a.694.694 0 0 1 .46.656v1.734a.694.694 0 0 1-.46.656l-1.608.573c-.13.347-.29.68-.476.997l.636 1.588a.694.694 0 0 1-.2.774l-1.226 1.226a.694.694 0 0 1-.774.2l-1.588-.636c-.317.187-.65.346-.997.476l-.573 1.608a.694.694 0 0 1-.656.46H9.344a.694.694 0 0 1-.656-.46l-.573-1.608a6.3 6.3 0 0 1-.997-.476l-1.588.636a.694.694 0 0 1-.774-.2L3.53 14.844a.694.694 0 0 1-.2-.774l.636-1.588a6.3 6.3 0 0 1-.476-.997L1.882 10.912a.694.694 0 0 1-.46-.656V8.522c0-.294.183-.557.46-.656l1.608-.573c.13-.347.29-.68.476-.997l-.636-1.588a.694.694 0 0 1 .2-.774L4.756 2.708a.694.694 0 0 1 .774-.2l1.588.636c.317-.187.65-.346.997-.476L8.688.46A.694.694 0 0 1 9.344 0h1.734zM10.211 6.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"/></svg>`,
+  terminal: `<svg width="10" height="10" viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M4.5 5.5l2.5 2-2.5 2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><line x1="8.5" y1="10" x2="11.5" y2="10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>`,
+  folder:   `<svg width="10" height="10" viewBox="0 0 16 16"><path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h3.172a1.5 1.5 0 0 1 1.06.44l.828.828a.5.5 0 0 0 .354.146H13.5A1.5 1.5 0 0 1 15 4.914V12.5A1.5 1.5 0 0 1 13.5 14h-11A1.5 1.5 0 0 1 1 12.5v-9z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>`,
+  check:    `<svg width="8" height="8" viewBox="0 0 12 12"><path d="M2 6.5l3 3 5-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  xmark:    `<svg width="8" height="8" viewBox="0 0 12 12"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+  checkCircle: `<svg width="10" height="10" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e"/><path d="M4.5 8l2.5 2.5 4.5-5" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  questionBubble: `<svg width="12" height="12" viewBox="0 0 16 16"><path d="M8 1C4.134 1 1 3.686 1 7c0 1.886 1.075 3.555 2.737 4.622L3 14l3.078-1.538C6.7 12.82 7.336 13 8 13c3.866 0 7-2.686 7-6s-3.134-6-7-6z" fill="currentColor"/><text x="8" y="9.5" text-anchor="middle" font-size="7" font-weight="bold" fill="white" font-family="-apple-system,sans-serif">?</text></svg>`,
+  docText:  `<svg width="10" height="12" viewBox="0 0 14 16"><path d="M2 1.5A1.5 1.5 0 0 1 3.5 0h5.086a1.5 1.5 0 0 1 1.06.44l2.915 2.914A1.5 1.5 0 0 1 13 4.414V14.5A1.5 1.5 0 0 1 11.5 16h-8A1.5 1.5 0 0 1 2 14.5v-13z" fill="none" stroke="currentColor" stroke-width="1.1"/><line x1="4.5" y1="7" x2="9.5" y2="7" stroke="currentColor" stroke-width="0.8"/><line x1="4.5" y1="9.5" x2="9.5" y2="9.5" stroke="currentColor" stroke-width="0.8"/><line x1="4.5" y1="12" x2="7.5" y2="12" stroke="currentColor" stroke-width="0.8"/></svg>`,
+  globe:    `<svg width="10" height="10" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.1"/><ellipse cx="8" cy="8" rx="3" ry="6.5" fill="none" stroke="currentColor" stroke-width="1.1"/><line x1="1.5" y1="8" x2="14.5" y2="8" stroke="currentColor" stroke-width="1.1"/></svg>`,
+  chevDown: `<svg width="8" height="8" viewBox="0 0 12 12"><path d="M2.5 4.5l3.5 3.5 3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  arrowUpRight: `<svg width="9" height="9" viewBox="0 0 14 14"><rect x="0.5" y="0.5" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M5 9l4-4M9 5v4h-4" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+};
+
+const IND = {
+  working:  '<div class="indicator spinner" style="border-top-color:#22c55e;border-right-color:#22c55e;border-bottom-color:#22c55e"></div>',
+  workingS: '<div class="indicator-small spinner" style="border-top-color:#22c55e;border-right-color:#22c55e;border-bottom-color:#22c55e"></div>',
+  approval: '<div class="indicator pulse pulse-yellow"></div>',
+  approvalS:'<div class="indicator-small pulse pulse-yellow"></div>',
+  ready:    '<div class="indicator pulse pulse-red"></div>',
+  readyS:   '<div class="indicator-small pulse pulse-red"></div>',
+  idle:     '<div class="indicator dot-gray"></div>',
+  idleS:    '<div class="indicator-small dot-gray"></div>',
+  complete: SF.checkCircle,
+};
+
+// ── Pill component factory ──
+
+function createPill(container, config) {
+  const id = container.id;
+  const state = {
+    expanded: config.startExpanded || false,
+    pinned: false,
+    sessions: JSON.parse(JSON.stringify(config.sessions)), // deep copy
+    displayState: config.displayState,
+    pillText: config.pillText,
+    pillIndicator: config.pillIndicator,
+    pillSubdued: config.pillSubdued || false,
+    width: config.width || 340,
+    collapsedWidth: config.collapsedWidth || 220,
+  };
+
+  container.innerHTML = `
+    <div class="ag-wrap">
+      <div class="ag-pill" style="width:${state.expanded ? state.width : state.collapsedWidth}px" data-id="${id}">
+        <div class="ag-pill-header">
+          <div class="ag-pill-label" data-label="${id}"></div>
+          <div class="ag-pill-buttons">
+            <button class="ag-pill-btn" data-pin="${id}" style="transform:rotate(45deg)">${SF.pin}</button>
+            <button class="ag-pill-btn" data-settings="${id}">${SF.gear}</button>
+          </div>
+        </div>
+      </div>
+      <div class="ag-panel" style="width:${state.width}px" data-panel="${id}"></div>
+    </div>`;
+
+  const pillEl = container.querySelector(`[data-id="${id}"]`);
+  const panelEl = container.querySelector(`[data-panel="${id}"]`);
+  const labelEl = container.querySelector(`[data-label="${id}"]`);
+  const pinEl = container.querySelector(`[data-pin="${id}"]`);
+  const wrap = container.querySelector('.ag-wrap');
+
+  function render() {
+    // Pill label
+    const ind = IND[state.pillIndicator] || IND.idle;
+    const subdued = state.pillSubdued ? `style="color:rgba(var(--pill-fg),0.35)"` : '';
+    labelEl.innerHTML = `${ind}<span class="text" ${subdued}>${state.pillText}</span>`;
+
+    // Pill width + expanded class
+    pillEl.style.width = (state.expanded ? state.width : state.collapsedWidth) + 'px';
+    pillEl.classList.toggle('expanded', state.expanded);
+    panelEl.classList.toggle('visible', state.expanded);
+
+    // Panel content
+    panelEl.innerHTML = state.sessions.map((s, idx) => renderRow(s, idx, id)).join('');
+  }
+
+  function renderRow(s, idx, pid) {
+    switch (s.type) {
+      case 'approval': return renderApproval(s, idx, pid);
+      case 'question': return renderQuestion(s, idx, pid);
+      case 'plan': return renderPlan(s, idx, pid);
+      default: return renderSession(s);
+    }
+  }
+
+  function renderSession(s) {
+    const ind = IND[(s.state || 'idle') + 'S'] || IND.idleS;
+    const badge = s.mode ? `<span class="mode-badge ${s.mode}">${s.mode[0].toUpperCase()+s.mode.slice(1)}</span>` : '';
+    const url = s.url ? `<div class="session-url"><span class="sf">${SF[s.url.icon]}</span> ${s.url.text}</div>` : '';
+    return `<div class="session-row"><div class="session-row-main">${ind}<div class="session-info"><div class="session-name">${s.name}</div><div class="session-detail">${s.detail}</div></div>${badge}<span class="session-time">${s.time}</span><div class="session-actions"><button><span class="sf">${SF.terminal}</span></button><button><span class="sf">${SF.folder}</span></button></div></div>${url}</div>`;
+  }
+
+  function renderApproval(s, idx, pid) {
+    const q = s.queueCount > 1 ? `<span style="font-size:9px;font-weight:600;color:rgba(234,179,8,0.7)">+${s.queueCount-1}</span>` : '';
+    return `<div class="approval-row"><div class="approval-header">${IND.approvalS}<span class="approval-name">${s.name}</span><span class="header-terminal">${SF.terminal}</span><span style="flex:1"></span><span class="tool-badge yellow">${s.tool}</span></div><div class="tool-summary">${s.summary}</div><div class="approval-actions"><button class="btn btn-allow" onclick="pillAction('${pid}',${idx},'allow')"><span class="sf">${SF.check}</span> Allow</button><button class="btn btn-always" onclick="pillAction('${pid}',${idx},'allow')">Always</button><button class="btn btn-deny" onclick="pillAction('${pid}',${idx},'deny')"><span class="sf">${SF.xmark}</span> Deny</button>${q}<button class="btn btn-skip" onclick="pillAction('${pid}',${idx},'deny')">Skip</button></div></div>`;
+  }
+
+  function renderQuestion(s, idx, pid) {
+    const chips = s.options.map(o => `<div class="option-chip" onclick="pillChip(this,'${pid}',${idx})">${o}</div>`).join('');
+    return `<div class="question-row"><div class="question-header"><span class="question-icon">${SF.questionBubble}</span><span class="approval-name">${s.name}</span><span class="header-terminal">${SF.terminal}</span><span style="flex:1"></span><span class="tool-badge blue">Question</span></div><div class="question-text">${s.question}</div><div class="option-chips">${chips}</div><div class="approval-actions"><button class="btn btn-submit" style="display:none" data-submit="${pid}-${idx}" onclick="pillAction('${pid}',${idx},'allow')"><span class="sf">${SF.check}</span> Submit</button></div></div>`;
+  }
+
+  function renderPlan(s, idx, pid) {
+    const preview = s.preview.map(l => l.type === 'heading' ? `<div class="heading">${l.text}</div>` : l.type === 'bullet' ? `<div><span class="bullet">•</span> ${l.text}</div>` : `<div>${l.text}</div>`).join('');
+    return `<div class="plan-row"><div class="question-header"><span class="plan-icon">${SF.docText}</span><span class="approval-name">${s.name}</span><span class="header-terminal">${SF.terminal}</span><span style="flex:1"></span><span class="tool-badge blue">Plan Review</span></div><div class="plan-preview">${preview}</div><button class="show-plan-btn"><span class="sf">${SF.chevDown}</span> Show full plan</button><div class="plan-actions"><button class="btn btn-approve" onclick="pillAction('${pid}',${idx},'allow')"><span class="sf">${SF.check}</span> Approve</button><button class="btn btn-reject" onclick="pillAction('${pid}',${idx},'deny')"><span class="sf">${SF.xmark}</span> Reject</button><button class="btn-open"><span class="sf">${SF.arrowUpRight}</span> Open</button></div></div>`;
+  }
+
+  // Hover
+  if (!config.static) {
+    wrap.addEventListener('mouseenter', () => {
+      if (state.sessions.length === 0) return;
+      state.expanded = true; render();
+    });
+    wrap.addEventListener('mouseleave', () => {
+      if (state.pinned) return;
+      state.expanded = false; render();
+    });
+  }
+
+  // Pin
+  pinEl.addEventListener('click', (e) => {
+    e.stopPropagation();
+    state.pinned = !state.pinned;
+    pinEl.classList.toggle('pinned', state.pinned);
+    pinEl.innerHTML = state.pinned ? SF.pinFill : SF.pin;
+    pinEl.style.transform = state.pinned ? 'rotate(0deg)' : 'rotate(45deg)';
+  });
+
+  render();
+  if (state.expanded) { pillEl.classList.add('expanded'); panelEl.classList.add('visible'); }
+
+  // Register for global actions
+  window._pills = window._pills || {};
+  window._pills[id] = { state, render, config };
+}
+
+// ── Global action handlers ──
+
+function pillAction(pid, idx, action) {
+  const p = window._pills[pid];
+  if (!p) return;
+  const s = p.state.sessions[idx];
+  if (!s) return;
+
+  if (action === 'allow') {
+    p.state.sessions[idx] = {
+      type: 'session', name: s.name, state: 'working',
+      detail: (s.tool || 'Edit') + ' — ' + (Math.floor(Math.random()*20)+5) + ' tools',
+      time: s.time || '0m 1s', mode: s.mode,
+    };
+    p.state.displayState = 'working';
+    p.state.pillText = 'Running ' + (s.tool || 'Edit') + '...';
+    p.state.pillIndicator = 'working';
+    p.state.pillSubdued = false;
+  } else {
+    p.state.sessions[idx] = {
+      type: 'session', name: s.name, state: 'ready',
+      detail: 'Ready for next prompt', time: s.time || '0m 1s', mode: s.mode,
+    };
+    const hasAction = p.state.sessions.some(x => x.type !== 'session');
+    const hasWorking = p.state.sessions.some(x => x.state === 'working');
+    if (hasAction) { /* keep current */ }
+    else if (hasWorking) {
+      p.state.displayState = 'working';
+      const w = p.state.sessions.find(x => x.state === 'working');
+      p.state.pillText = 'Running ' + (w.detail.split(' — ')[0]) + '...';
+      p.state.pillIndicator = 'working';
+    } else {
+      p.state.displayState = 'ready';
+      const r = p.state.sessions.find(x => x.state === 'ready');
+      p.state.pillText = (r ? r.name : 'Session') + ' finished';
+      p.state.pillIndicator = 'ready';
+    }
+    p.state.pillSubdued = false;
+  }
+  p.render();
+
+  // Auto-reset after 3s so user can re-interact
+  setTimeout(() => {
+    p.state.sessions = JSON.parse(JSON.stringify(p.config.sessions));
+    p.state.displayState = p.config.displayState;
+    p.state.pillText = p.config.pillText;
+    p.state.pillIndicator = p.config.pillIndicator;
+    p.state.pillSubdued = p.config.pillSubdued || false;
+    p.render();
+  }, 3000);
+}
+
+function pillChip(el, pid, idx) {
+  el.parentElement.querySelectorAll('.option-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  const btn = document.querySelector(`[data-submit="${pid}-${idx}"]`);
+  if (btn) btn.style.display = '';
+}
+
+// ── Elapsed time ticking ──
+setInterval(() => {
+  document.querySelectorAll('.ag .session-time').forEach(el => {
+    const m = el.textContent.match(/(\d+)m\s+(\d+)s/);
+    if (m) {
+      let min = parseInt(m[1]), sec = parseInt(m[2]) + 1;
+      if (sec >= 60) { sec = 0; min++; }
+      el.textContent = `${min}m ${sec.toString().padStart(2,' ')}s`;
+    }
+  });
+}, 1000);
+
+// ═══════════════════════════════════════════════
+// Create all demo pills
+// ═══════════════════════════════════════════════
+
+// Hero: walkthrough pill (controlled by the walkthrough engine)
+createPill(document.getElementById('hero-pill'), {
+  static: true,
+  startExpanded: false,
+  displayState: 'idle',
+  pillText: 'AgentGlance',
+  pillIndicator: 'idle',
+  pillSubdued: true,
+  collapsedWidth: 200,
+  width: 340,
+  sessions: [],
+});
+
+// ═══════════════════════════════════════════════
+// Hero Walkthrough Engine
+// ═══════════════════════════════════════════════
+(function() {
+  const termBody = document.getElementById('term-body');
+  const hint = document.getElementById('hero-hint');
+  const hp = window._pills['hero-pill'];
+  let lines = [];
+  let waitingForUser = false;
+  let userCallback = null;
+  let loopTimeout = null;
+
+  function setTermLines(newLines) {
+    lines = newLines;
+    termBody.innerHTML = lines.join('<br>');
+    termBody.scrollTop = termBody.scrollHeight;
+  }
+
+  function addLine(html) {
+    lines.push(html);
+    termBody.innerHTML = lines.join('<br>');
+    termBody.scrollTop = termBody.scrollHeight;
+  }
+
+  function setPill(opts) {
+    Object.assign(hp.state, opts);
+    hp.state.pillSubdued = false;
+    hp.render();
+    // Manage expanded state
+    const pillEl = document.querySelector('[data-id="hero-pill"]');
+    const panelEl = document.querySelector('[data-panel="hero-pill"]');
+    if (opts.sessions && opts.sessions.length > 0) {
+      hp.state.expanded = true;
+      pillEl.style.width = hp.state.width + 'px';
+      pillEl.classList.add('expanded');
+      panelEl.classList.add('visible');
+    } else if (opts.sessions && opts.sessions.length === 0) {
+      hp.state.expanded = false;
+      pillEl.style.width = hp.state.collapsedWidth + 'px';
+      pillEl.classList.remove('expanded');
+      panelEl.classList.remove('visible');
+    }
+    hp.render();
+  }
+
+  function showHint(text) {
+    hint.textContent = text;
+    hint.classList.add('visible');
+  }
+  function hideHint() {
+    hint.classList.remove('visible');
+  }
+
+  function wait(ms) {
+    return new Promise(r => loopTimeout = setTimeout(r, ms));
+  }
+
+  function typeLines(newLines, delay) {
+    return new Promise(async (resolve) => {
+      for (const line of newLines) {
+        addLine(line);
+        await wait(delay || 400);
+      }
+      resolve();
+    });
+  }
+
+  function waitForPillAction() {
+    return new Promise((resolve) => {
+      waitingForUser = true;
+      userCallback = resolve;
+    });
+  }
+
+  // Override pillAction for hero pill to trigger walkthrough continuation
+  const origPillAction = window.pillAction;
+  window.pillAction = function(pid, idx, action) {
+    if (pid === 'hero-pill' && waitingForUser) {
+      waitingForUser = false;
+      hideHint();
+      if (userCallback) { const cb = userCallback; userCallback = null; cb(action); }
+      return;
+    }
+    origPillAction(pid, idx, action);
+  };
+
+  // Override pillChip for hero
+  const origPillChip = window.pillChip;
+  window.pillChip = function(el, pid, idx) {
+    origPillChip(el, pid, idx);
+    // If hero, also show submit
+    if (pid === 'hero-pill') {
+      const btn = document.querySelector('[data-submit="hero-pill-0"]');
+      if (btn) btn.style.display = '';
+    }
+  };
+
+  // ── Helpers for Claude Code style lines ──
+  function toolLine(name, detail) {
+    return `<div class="tool-line"><div class="tool-dot"></div><span class="tool-name">${name}</span>(<span class="tool-detail">${detail}</span>)</div>`;
+  }
+  function toolResult(text) {
+    return `<div class="result">└ ${text}</div>`;
+  }
+  function responseLine(text) {
+    return `<div class="response-line"><div class="resp-dot"></div><span>${text}</span></div>`;
+  }
+
+  // ── Walkthrough script ──
+  async function runWalkthrough() {
+    // Phase 1: Session starts
+    setTermLines([
+      '<span class="prompt">$</span> claude',
+      '',
+      '<span class="prompt">&gt;</span> <span class="white">Refactor the auth module to use JWT tokens</span>',
+      '',
+    ]);
+    setPill({
+      displayState: 'working', pillText: 'Working...',
+      pillIndicator: 'working', sessions: [],
+    });
+    await wait(1200);
+
+    // Tool calls with results
+    addLine(toolLine('Read', 'src/auth/middleware.ts'));
+    await wait(400);
+    addLine(toolResult('Read <span class="white">84</span> lines'));
+    setPill({ displayState: 'working', pillText: 'Running Read...', pillIndicator: 'working', sessions: [] });
+    await wait(500);
+
+    addLine(toolLine('Read', 'src/auth/tokens.ts'));
+    await wait(400);
+    addLine(toolResult('Read <span class="white">127</span> lines'));
+    await wait(500);
+
+    addLine(toolLine('Grep', 'pattern: "session"'));
+    await wait(400);
+    addLine(toolResult('Found <span class="white">12</span> matches in 4 files'));
+    setPill({ displayState: 'working', pillText: 'Running Grep...', pillIndicator: 'working', sessions: [] });
+    await wait(600);
+
+    addLine('');
+    addLine(responseLine('I\'ll update the auth middleware to use JWT. Let me run the build first:'));
+    await wait(600);
+
+    // Phase 2: Permission request (Claude Code style bordered box)
+    addLine('');
+    addLine(`<div class="perm-box">
+      <div class="perm-title">Bash</div>
+      <div style="margin:4px 0"><span class="white">npm run build && npm test</span></div>
+      <div class="perm-desc">Claude wants to run a shell command</div>
+      <div style="margin-top:6px">
+        <div class="perm-opt"><span class="arrow">❯</span> <span class="sel">1. Yes</span></div>
+        <div class="perm-opt">&nbsp; 2. Yes, and don't ask again</div>
+        <div class="perm-opt">&nbsp; 3. No <span class="dim">(esc)</span></div>
+      </div>
+    </div>`);
+
+    setPill({
+      displayState: 'approval',
+      pillText: '~/Projects/MyApp: approve Bash?',
+      pillIndicator: 'approval',
+      sessions: [
+        { type: 'approval', name: '~/Projects/MyApp', tool: 'Bash',
+          summary: 'npm run build && npm test', time: '0m 12s', mode: 'plan' },
+      ],
+    });
+    showHint('Click Allow or Deny on the overlay →');
+
+    const approvalAction = await waitForPillAction();
+    await wait(300);
+
+    // Remove the permission box and show result
+    lines = lines.filter(l => !l.includes('perm-box'));
+    if (approvalAction === 'allow') {
+      addLine(toolLine('Bash', 'npm run build && npm test'));
+      await wait(400);
+      addLine(toolResult('Build succeeded. <span class="white">42</span> tests passed'));
+      setPill({ displayState: 'working', pillText: 'Running Bash...', pillIndicator: 'working', sessions: [] });
+    } else {
+      addLine(`<div class="result" style="color:#facc15">✕ Denied by user</div>`);
+      setPill({ displayState: 'working', pillText: 'Working...', pillIndicator: 'working', sessions: [] });
+    }
+    await wait(800);
+
+    addLine('');
+    addLine(toolLine('Edit', 'src/auth/middleware.ts'));
+    await wait(400);
+    addLine(toolResult('Updated JWT validation logic (+32 -18 lines)'));
+    setPill({ displayState: 'working', pillText: 'Running Edit...', pillIndicator: 'working', sessions: [] });
+    await wait(500);
+
+    addLine(toolLine('Edit', 'src/auth/tokens.ts'));
+    await wait(400);
+    addLine(toolResult('Added refresh token rotation (+45 lines)'));
+    await wait(600);
+
+    addLine('');
+    addLine(responseLine('I need to set up the session store. Which database do you prefer?'));
+    await wait(400);
+
+    // Phase 3: Question (Claude Code style with checkboxes)
+    addLine('');
+    addLine(`<div class="q-line">Which database should we use for sessions?</div>`);
+    addLine(`<div class="q-opt"><span class="arrow">❯</span> 1. <span class="check">[✓]</span> <span class="white">PostgreSQL</span></div>`);
+    addLine(`<div class="q-opt">&nbsp; 2. [ ] SQLite</div>`);
+    addLine(`<div class="q-opt">&nbsp; 3. [ ] Redis</div>`);
+    addLine(`<div class="q-hint">Enter to select · Tab/Arrow keys to navigate · Esc to cancel</div>`);
+
+    setPill({
+      displayState: 'approval',
+      pillText: '~/Projects/MyApp has a question',
+      pillIndicator: 'approval',
+      sessions: [
+        { type: 'question', name: '~/Projects/MyApp',
+          question: 'Which database should we use for sessions?',
+          options: ['PostgreSQL', 'SQLite', 'Redis'], time: '0m 28s' },
+      ],
+    });
+    showHint('Pick an option and click Submit →');
+
+    await waitForPillAction();
+    await wait(300);
+
+    const picked = document.querySelector('#hero-pill .option-chip.selected');
+    const answer = picked ? picked.textContent : 'PostgreSQL';
+
+    // Remove question lines and show selection
+    lines = lines.filter(l => !l.includes('q-line') && !l.includes('q-opt') && !l.includes('q-hint'));
+    addLine(`<div class="result" style="color:#4ade80">→ ${answer}</div>`);
+
+    setPill({ displayState: 'working', pillText: 'Working...', pillIndicator: 'working', sessions: [] });
+    await wait(600);
+
+    addLine('');
+    addLine(toolLine('Edit', 'src/db/sessions.ts'));
+    await wait(400);
+    addLine(toolResult('Created ' + answer + ' session store (+68 lines)'));
+    setPill({ displayState: 'working', pillText: 'Running Edit...', pillIndicator: 'working', sessions: [] });
+    await wait(500);
+
+    addLine(toolLine('Write', 'src/db/migrate.ts'));
+    await wait(400);
+    addLine(toolResult('Created migration script'));
+    setPill({ displayState: 'working', pillText: 'Running Write...', pillIndicator: 'working', sessions: [] });
+    await wait(800);
+
+    // Phase 4: Done
+    addLine('');
+    addLine(responseLine('Done! Refactored the auth module to use JWT with ' + answer + ' for session storage. The migration script is ready to run.'));
+
+    setPill({
+      displayState: 'ready',
+      pillText: '~/Projects/MyApp finished',
+      pillIndicator: 'ready',
+      sessions: [],
+    });
+    await wait(5000);
+
+    // Reset and loop
+    setPill({
+      displayState: 'idle', pillText: 'AgentGlance',
+      pillIndicator: 'idle', pillSubdued: true, sessions: [],
+    });
+    hp.state.pillSubdued = true;
+    hp.render();
+    await wait(2500);
+
+    runWalkthrough();
+  }
+
+  runWalkthrough();
+})();
+
+
+// Approval demo
+createPill(document.getElementById('demo-approval'), {
+  startExpanded: true,
+  displayState: 'approval',
+  pillText: '~/Projects/MyApp: approve Bash?',
+  pillIndicator: 'approval',
+  sessions: [
+    { type: 'approval', name: '~/Projects/MyApp', tool: 'Bash', summary: 'npm run build && npm test', time: '2m 15s', mode: 'plan' },
+  ],
+});
+
+// Question demo
+createPill(document.getElementById('demo-question'), {
+  startExpanded: true,
+  displayState: 'approval',
+  pillText: '~/Projects/MyApp has a question',
+  pillIndicator: 'approval',
+  sessions: [
+    { type: 'question', name: '~/Projects/MyApp', question: 'Which database should we use?', options: ['PostgreSQL', 'SQLite', 'MongoDB'], time: '1m 30s' },
+  ],
+});
+
+// Plan demo
+createPill(document.getElementById('demo-plan'), {
+  startExpanded: true,
+  displayState: 'approval',
+  pillText: '~/Projects/MyApp: review plan',
+  pillIndicator: 'approval',
+  sessions: [
+    { type: 'plan', name: '~/Projects/MyApp', time: '3m 10s', preview: [
+      { type: 'heading', text: 'Implementation Plan' },
+      { type: 'bullet', text: 'Add authentication middleware to Express app' },
+      { type: 'bullet', text: 'Create JWT token validation with refresh flow' },
+      { type: 'bullet', text: 'Add rate limiting per-user with Redis backend' },
+      { type: 'text', text: 'This requires adding 3 new npm packages...' },
+    ]},
+  ],
+});
+
+// Multi-session demo
+createPill(document.getElementById('demo-multi'), {
+  startExpanded: true,
+  displayState: 'working',
+  pillText: 'Running Edit...',
+  pillIndicator: 'working',
+  width: 380,
+  sessions: [
+    { type: 'session', name: '~/Projects/MyApp', state: 'working', detail: 'Edit — 12 tools', time: '2m 15s', mode: 'plan' },
+    { type: 'session', name: '~/Projects/Backend', state: 'working', detail: 'Bash — 8 tools', time: '8m 42s', mode: 'auto', url: { icon: 'globe', text: 'https://api.example.com/v2/config' } },
+    { type: 'session', name: '~/Projects/Docs', state: 'ready', detail: 'Ready for next prompt', time: '15m 30s' },
+  ],
+});
+</script>
 
 </body>
 </html>
