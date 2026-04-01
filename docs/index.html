@@ -169,17 +169,20 @@
                 align-items: center;
                 gap: 16px;
             }
-            .hero-wallpaper { padding: 20px 16px; }
+            .hero-wallpaper { padding: 16px 12px; }
+            .hero-stage { padding: 32px 12px 0; }
+            .fake-term-body { font-size: 10px; height: 220px; }
         }
 
         /* Fake terminal */
         .fake-term {
             width: 420px;
+            max-width: 100%;
             background: #1a1a1a;
             border-radius: 10px;
             border: 1px solid #333;
             overflow: hidden;
-            flex-shrink: 0;
+            flex-shrink: 1;
         }
         @media (prefers-color-scheme: light) {
             .fake-term { background: #1a1a1a; border-color: #444; } /* terminal stays dark */
