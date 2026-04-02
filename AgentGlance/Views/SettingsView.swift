@@ -73,6 +73,7 @@ private struct GeneralPane: View {
     @AppStorage(Constants.UserDefaultsKeys.sleepPreventionEnabled) private var sleepPrevention = true
     @AppStorage(Constants.UserDefaultsKeys.soundEnabled) private var soundEnabled = true
     @AppStorage(Constants.UserDefaultsKeys.autoExpandOnApproval) private var autoExpand = false
+    @AppStorage(Constants.UserDefaultsKeys.suppressExpansionWhenInTerminal) private var suppressInTerminal = false
     @AppStorage(Constants.UserDefaultsKeys.showAllApprovals) private var showAllApprovals = false
     @AppStorage(Constants.UserDefaultsKeys.screenSelectionMode) private var screenMode = "mainScreen"
     @AppStorage(Constants.UserDefaultsKeys.selectedScreenID) private var selectedScreenID = ""
@@ -112,6 +113,10 @@ private struct GeneralPane: View {
                     }
                 Toggle("Play sound on notifications", isOn: $soundEnabled)
                 Toggle("Auto-expand notch on approval requests", isOn: $autoExpand)
+                if autoExpand {
+                    Toggle("Don't auto-expand when terminal is focused", isOn: $suppressInTerminal)
+                        .padding(.leading, 16)
+                }
                 Toggle("Show all queued approvals at once", isOn: $showAllApprovals)
             }
 

@@ -8,6 +8,25 @@ enum SessionState: String, CaseIterable {
     case complete
 }
 
+/// Sub-state for the .working state — provides richer detail about what's happening
+enum WorkingDetail: String {
+    case thinking       // between UserPromptSubmit and first PreToolUse
+    case runningTool    // executing a tool
+    case compacting     // context window compaction
+}
+
+/// Progress tracking for TodoWrite tool calls
+struct TodoProgress {
+    var completed: Int = 0
+    var inProgress: Int = 0
+    var open: Int = 0
+    var total: Int { completed + inProgress + open }
+
+    var summary: String {
+        "\(completed) done, \(inProgress) in progress, \(open) open"
+    }
+}
+
 @Observable
 final class Session: Identifiable {
     let id: String
@@ -37,8 +56,20 @@ final class Session: Identifiable {
     var terminalBundleId: String?
     var processPID: Int?
 
-    /// Throttle enrichment retries
-    var lastEnrichmentAttempt: Date?
+    // MARK: - Enriched state (Features 4, 7, 8, 9, 10)
+
+    /// Sub-state for .working — thinking, runningTool, or compacting
+    var workingDetail: WorkingDetail?
+
+    /// Last user prompt text (truncated) for context display
+    var lastUserPrompt: String?
+
+    /// Agent's last message shown as completion card when .ready
+    var lastAssistantMessage: String?
+    var completionCardVisible: Bool = false
+
+    /// TodoWrite task progress across the session
+    var todoProgress: TodoProgress?
 
     var projectName: String {
         var path = cwd

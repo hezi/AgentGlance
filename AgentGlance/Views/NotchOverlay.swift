@@ -157,7 +157,7 @@ struct NotchOverlay: View {
             // Center: status label
             HStack(spacing: 8) {
                 if let session = primarySession {
-                    stateIndicator(for: session.state)
+                    stateIndicator(for: session)
                         .frame(width: 10, height: 10)
 
                     Group {
@@ -316,7 +316,7 @@ struct NotchOverlay: View {
                     TerminalActivator.activate(session: session)
                 } label: {
                     HStack(spacing: 8) {
-                        stateIndicator(for: session.state)
+                        stateIndicator(for: session)
                             .frame(width: 8, height: 8)
 
                         VStack(alignment: .leading, spacing: 1) {
@@ -389,6 +389,38 @@ struct NotchOverlay: View {
                     .foregroundColor(.blue)
                 }
             }
+
+            // Feature 10: show last user prompt as context
+            if let prompt = session.lastUserPrompt,
+               session.workingDetail != .thinking,
+               session.state == .working || session.state == .ready {
+                Text(String(prompt.prefix(60)))
+                    .font(scaledFont(size: fontScale.badgeSize))
+                    .foregroundStyle(fg.opacity(0.25))
+                    .lineLimit(1)
+                    .padding(.leading, 16)
+            }
+
+            // Feature 8: show TodoWrite progress
+            if let todo = session.todoProgress, todo.total > 0 {
+                Text("(\(todo.summary))")
+                    .font(scaledFont(size: fontScale.badgeSize))
+                    .foregroundStyle(fg.opacity(0.35))
+                    .padding(.leading, 16)
+            }
+
+            // Feature 7: completion card with last assistant message
+            if session.state == .ready,
+               session.completionCardVisible,
+               let message = session.lastAssistantMessage, !message.isEmpty {
+                CompletionCardView(
+                    message: message,
+                    fontScale: fontScale,
+                    fg: fg,
+                    onDismiss: { session.completionCardVisible = false }
+                )
+                .padding(.leading, 16)
+            }
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
@@ -399,6 +431,57 @@ struct NotchOverlay: View {
     }
 
     // MARK: - Shared: Tool summary display (used by both approval row modes)
+
+    /// Enhanced tool detail: shows EditDiffView for Edit, Write new-file indicator, or falls back to summary
+    @ViewBuilder
+    private func toolDetailBlock(summary: String?, toolName: String?, toolInput: JSONValue?) -> some View {
+        if toolName == "Edit",
+           let input = toolInput,
+           let filePath = input["file_path"],
+           let oldString = input["old_string"],
+           let newString = input["new_string"] {
+            EditDiffView(
+                filePath: filePath,
+                oldString: oldString,
+                newString: newString,
+                fontScale: fontScale,
+                fg: fg
+            )
+        } else if toolName == "Write", let input = toolInput, let filePath = input["file_path"] {
+            let isNew = !FileManager.default.fileExists(
+                atPath: NSString(string: filePath).expandingTildeInPath
+            )
+            HStack(spacing: 4) {
+                Image(systemName: isNew ? "doc.badge.plus" : "pencil.line")
+                    .font(scaledFont(size: fontScale.badgeSize))
+                    .foregroundStyle(isNew ? .green.opacity(0.7) : fg.opacity(0.5))
+                Text(isNew ? "New file" : "Overwrite")
+                    .font(scaledFont(size: fontScale.badgeSize, weight: .medium))
+                    .foregroundStyle(isNew ? .green.opacity(0.7) : fg.opacity(0.5))
+                Text(shortenPathForDisplay(filePath))
+                    .font(scaledFont(size: fontScale.monoSize, design: .monospaced))
+                    .foregroundStyle(fg.opacity(0.7))
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(fg.opacity(0.04))
+            )
+        } else {
+            toolSummaryBlock(summary: summary, toolName: toolName)
+        }
+    }
+
+    private func shortenPathForDisplay(_ path: String) -> String {
+        let components = path.split(separator: "/")
+        if components.count > 3 {
+            return ".../" + components.suffix(2).joined(separator: "/")
+        }
+        return path
+    }
 
     @ViewBuilder
     private func toolSummaryBlock(summary: String?, toolName: String?) -> some View {
@@ -564,7 +647,7 @@ struct NotchOverlay: View {
                     .background(Capsule().fill(.yellow.opacity(0.15)))
             }
 
-            toolSummaryBlock(summary: pending.toolSummary, toolName: pending.toolName)
+            toolDetailBlock(summary: pending.toolSummary, toolName: pending.toolName, toolInput: pending.toolInput)
 
             approvalButtons(
                 session: session,
@@ -623,7 +706,7 @@ struct NotchOverlay: View {
             }
             .buttonStyle(.plain)
 
-            toolSummaryBlock(summary: summary, toolName: toolName)
+            toolDetailBlock(summary: summary, toolName: toolName, toolInput: pending?.toolInput)
 
             if hasPending {
                 approvalButtons(
@@ -821,12 +904,19 @@ struct NotchOverlay: View {
     // MARK: - State Visuals
 
     @ViewBuilder
-    private func stateIndicator(for state: SessionState) -> some View {
-        switch state {
+    private func stateIndicator(for session: Session) -> some View {
+        switch session.state {
         case .idle:
             Circle().fill(.gray)
         case .working:
-            SpinnerView(color: .green)
+            switch session.workingDetail {
+            case .thinking:
+                SpinnerView(color: .cyan)
+            case .compacting:
+                SpinnerView(color: .orange)
+            default:
+                SpinnerView(color: .green)
+            }
         case .awaitingApproval:
             PulseView(color: .yellow)
         case .ready:
@@ -842,10 +932,21 @@ struct NotchOverlay: View {
         switch session.state {
         case .idle: "Idle"
         case .working:
-            if let tool = session.currentTool {
-                "Running \(tool)..."
-            } else {
-                "Working..."
+            switch session.workingDetail {
+            case .thinking: "Thinking..."
+            case .compacting: "Compacting..."
+            case .runningTool:
+                if let tool = session.currentTool {
+                    "Running \(tool)..."
+                } else {
+                    "Working..."
+                }
+            case nil:
+                if let tool = session.currentTool {
+                    "Running \(tool)..."
+                } else {
+                    "Working..."
+                }
             }
         case .awaitingApproval:
             if let tool = session.currentTool {
@@ -862,10 +963,27 @@ struct NotchOverlay: View {
         switch session.state {
         case .idle: "Waiting"
         case .working:
-            if let tool = session.currentTool {
-                "\(tool) — \(session.toolCount) tools"
-            } else {
-                "\(session.toolCount) tool calls"
+            switch session.workingDetail {
+            case .thinking:
+                if let prompt = session.lastUserPrompt {
+                    String(prompt.prefix(60))
+                } else {
+                    "\(session.toolCount) tool calls"
+                }
+            case .compacting:
+                "Compacting context — \(session.toolCount) tools"
+            case .runningTool:
+                if let tool = session.currentTool {
+                    "\(tool) — \(session.toolCount) tools"
+                } else {
+                    "\(session.toolCount) tool calls"
+                }
+            case nil:
+                if let tool = session.currentTool {
+                    "\(tool) — \(session.toolCount) tools"
+                } else {
+                    "\(session.toolCount) tool calls"
+                }
             }
         case .awaitingApproval:
             session.pendingToolSummary ?? "Waiting for approval"
