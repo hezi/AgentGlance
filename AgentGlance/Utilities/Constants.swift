@@ -2,6 +2,7 @@ import Foundation
 
 enum Constants {
     static let defaultPort: UInt16 = 7483
+    static let socketPath = "/tmp/agentglance.sock"
     static let completeFadeDelay: TimeInterval = 8.0
     static let sessionTimeoutInterval: TimeInterval = 300 // 5 minutes no activity = stale
 
@@ -26,6 +27,7 @@ enum Constants {
         static let hotkeyModifiers = "hotkeyModifiers"
         static let hotkeyKey = "hotkeyKey"
         static let keyboardNavMode = "keyboardNavMode"
+        static let suppressExpansionWhenInTerminal = "suppressExpansionWhenInTerminal"
     }
 }
 
