@@ -128,19 +128,27 @@ xcodebuild archive \
 
 info "Archive created at $ARCHIVE_PATH"
 
-# Step 2: Export with Developer ID signing
+# Step 2: Export — try Developer ID signing, fall back to unsigned
+mkdir -p "$EXPORT_PATH"
 info "Exporting with Developer ID signing..."
-xcodebuild -exportArchive \
+if xcodebuild -exportArchive \
     -archivePath "$ARCHIVE_PATH" \
     -exportOptionsPlist "$BUILD_DIR/ExportOptions.plist" \
     -exportPath "$EXPORT_PATH" \
-    -quiet \
-    || error "Export failed. Do you have a Developer ID certificate? Try: Xcode > Settings > Accounts > Manage Certificates"
+    -quiet 2>/dev/null; then
+    info "Exported with Developer ID signing"
+    SIGNED=true
+else
+    warn "Developer ID export failed — shipping unsigned"
+    warn "Users will need to right-click > Open on first launch"
+    cp -R "$ARCHIVE_PATH/Products/Applications/$APP_NAME" "$EXPORT_PATH/$APP_NAME"
+    SIGNED=false
+fi
 
-info "Exported to $EXPORT_PATH/$APP_NAME"
+info "App at $EXPORT_PATH/$APP_NAME"
 
-# Step 3: Notarize (if credentials available)
-if command -v xcrun &>/dev/null; then
+# Step 3: Notarize (if signed and credentials available)
+if [ "$SIGNED" = true ] && command -v xcrun &>/dev/null; then
     # Try keychain profile first (set up via: xcrun notarytool store-credentials)
     if xcrun notarytool history --keychain-profile "AgentGlance" &>/dev/null 2>&1; then
         info "Notarizing with keychain profile..."
