@@ -316,8 +316,40 @@
             text-align: center;
         }
 
+        .feature-demo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-auto-rows: auto;
+            gap: 0 24px;
+            margin-bottom: 32px;
+        }
+        /* Each feature-section spans 3 implicit rows (title, desc, demo).
+           Using subgrid so paired columns share row heights. */
+        .feature-demo-grid .feature-section:nth-child(odd)  { grid-column: 1; }
+        .feature-demo-grid .feature-section:nth-child(even) { grid-column: 2; }
+        .feature-demo-grid .feature-section:nth-child(1),
+        .feature-demo-grid .feature-section:nth-child(2) {
+            grid-row: 1 / span 3;
+        }
+        .feature-demo-grid .feature-section:nth-child(3),
+        .feature-demo-grid .feature-section:nth-child(4) {
+            grid-row: 4 / span 3;
+        }
+
         .feature-section {
-            margin-bottom: 48px;
+            margin-bottom: 0;
+            display: grid;
+            grid-template-rows: subgrid;
+        }
+
+        @media (max-width: 800px) {
+            .feature-demo-grid {
+                grid-template-columns: 1fr;
+            }
+            .feature-demo-grid .feature-section:nth-child(n) {
+                grid-column: 1;
+                grid-row: auto / span 3;
+            }
         }
 
         .feature-section h3 {
@@ -340,48 +372,57 @@
         }
 
         /* ── Feature grid (for non-demo features) ── */
-        .feature-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-top: 32px;
+        /* ── Also includes strip ── */
+        .also-includes {
+            text-align: center;
+            margin-top: 48px;
         }
 
-        .feature-card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 12px;
-            padding: 20px;
-        }
-
-        .feature-card h3 {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 6px;
-        }
-
-        .feature-card p {
-            font-size: 14px;
+        .also-includes h3 {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
             color: var(--muted);
-            line-height: 1.5;
+            margin-bottom: 16px;
+            font-weight: 500;
         }
 
-        .feature-card.wide { grid-column: 1 / -1; }
-
-        .terminals {
+        .includes-strip {
             display: flex;
-            gap: 12px;
             flex-wrap: wrap;
-            margin-top: 8px;
+            justify-content: center;
+            gap: 8px;
         }
 
-        .terminal-badge {
-            font-size: 12px;
-            color: var(--muted);
+        .includes-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--fg);
             background: var(--card-bg);
-            padding: 4px 10px;
-            border-radius: 6px;
             border: 1px solid var(--card-border);
+            padding: 6px 14px;
+            border-radius: 99px;
+            white-space: nowrap;
+        }
+
+        .includes-pill kbd {
+            font-size: 11px;
+            margin-left: 2px;
+        }
+
+        .includes-sub {
+            font-size: 11px;
+            font-weight: 400;
+            color: var(--muted);
+        }
+
+        .includes-coming {
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 16px;
         }
 
         kbd {
@@ -442,7 +483,6 @@
         @media (max-width: 600px) {
             .hero h1 { font-size: 32px; }
             .hero .tagline { font-size: 16px; }
-            .feature-grid { grid-template-columns: 1fr; }
             .hero .cta-secondary { display: block; margin: 12px 0 0; }
         }
 
@@ -530,7 +570,7 @@
             transition: color 0.15s;
         }
         .ag-pill-btn:hover { color: rgba(var(--pill-fg),0.6); }
-        .ag-pill-btn.pinned { color: #58a6ff; }
+        .ag-pill-btn.pinned { color: #0a84ff; }
         .ag-pill-btn svg { fill: currentColor; }
 
         .ag-panel {
@@ -553,9 +593,7 @@
             display: flex; flex-direction: column; gap: 4px;
             padding: 6px 8px; border-radius: 8px;
             background: rgba(var(--pill-fg),0.06);
-            cursor: pointer; transition: background 0.15s;
         }
-        .ag .session-row:hover { background: rgba(var(--pill-fg),0.1); }
 
         .ag .session-row-main { display: flex; align-items: center; gap: 8px; }
         .ag .session-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
@@ -574,9 +612,9 @@
         .ag .session-url {
             display: flex; align-items: center; gap: 4px;
             font-size: 10px; font-family: 'SF Mono', ui-monospace, monospace;
-            color: #58a6ff; text-decoration: underline; cursor: pointer; padding-left: 16px;
+            color: #0a84ff; text-decoration: underline; cursor: pointer; padding-left: 16px;
         }
-        .ag .session-url svg { fill: #58a6ff; }
+        .ag .session-url svg { fill: #0a84ff; }
 
         .ag .mode-badge {
             font-size: 9px; font-weight: 500;
@@ -589,8 +627,8 @@
         /* Approval */
         .ag .approval-row {
             padding: 8px 10px; border-radius: 8px;
-            background: rgba(234,179,8,0.06);
-            border: 0.5px solid rgba(234,179,8,0.15);
+            background: rgba(255,214,10,0.06);
+            border: 0.5px solid rgba(255,214,10,0.15);
             display: flex; flex-direction: column; gap: 6px;
         }
         .ag .approval-header { display: flex; align-items: center; gap: 6px; }
@@ -602,14 +640,90 @@
             font-size: 9px; font-weight: 500; font-family: 'SF Mono', ui-monospace, monospace;
             padding: 2px 6px; border-radius: 99px; margin-left: auto;
         }
-        .ag .tool-badge.yellow { color: rgba(234,179,8,0.9); background: rgba(234,179,8,0.15); }
-        .ag .tool-badge.blue { color: rgba(88,166,255,0.9); background: rgba(88,166,255,0.15); }
+        .ag .tool-badge.yellow { color: rgba(255,214,10,0.9); background: rgba(255,214,10,0.15); }
+        .ag .tool-badge.blue { color: rgba(10,132,255,0.9); background: rgba(10,132,255,0.15); }
 
         .ag .tool-summary {
             font-size: 10px; font-family: 'SF Mono', ui-monospace, monospace;
             color: rgba(var(--pill-fg),0.7); padding: 4px 6px; border-radius: 5px;
             background: rgba(var(--pill-fg),0.04);
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        /* Edit diff rendering — matches EditDiffView.swift */
+        .ag .edit-diff {
+            font-size: 10px; font-family: 'SF Mono', ui-monospace, monospace;
+            padding: 6px; border-radius: 5px;
+            background: rgba(var(--pill-fg),0.04);
+        }
+        .ag .diff-path {
+            font-size: 10px; font-family: 'SF Mono', ui-monospace, monospace;
+            color: rgba(var(--pill-fg),0.5); margin-bottom: 4px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .ag .diff-line {
+            padding: 1px 4px; border-radius: 2px; margin: 1px 0;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            font-size: 10px; font-family: 'SF Mono', ui-monospace, monospace;
+        }
+        /* App uses .red.opacity(0.08) bg, .red.opacity(0.7) prefix — SwiftUI .red=#ff3b30 */
+        .ag .diff-del { background: rgba(255,59,48,0.08); color: rgba(var(--pill-fg),0.7); }
+        /* App uses .green.opacity(0.08) bg, .green.opacity(0.7) prefix — SwiftUI .green=#34c759 */
+        .ag .diff-add { background: rgba(52,199,89,0.08); color: rgba(var(--pill-fg),0.7); }
+        .ag .diff-prefix { font-weight: 700; margin-right: 6px; }
+        .ag .diff-del .diff-prefix { color: rgba(255,59,48,0.7); }
+        .ag .diff-add .diff-prefix { color: rgba(52,199,89,0.7); }
+        .ag .diff-ctx { background: none; color: rgba(var(--pill-fg),0.7); }
+        .ag .diff-ctx .diff-prefix { color: rgba(var(--pill-fg),0.3); }
+
+        /* Write new file indicator — matches NotchOverlay toolDetailBlock */
+        .ag .write-indicator {
+            display: flex; align-items: center; gap: 4px;
+            font-size: 10px; padding: 4px 6px; border-radius: 5px;
+            background: rgba(var(--pill-fg),0.04);
+        }
+        /* App uses .green.opacity(0.7) for new file label */
+        .ag .write-label { font-weight: 600; color: rgba(52,199,89,0.7); font-size: 9px; }
+        .ag .write-path {
+            font-family: 'SF Mono', ui-monospace, monospace;
+            color: rgba(var(--pill-fg),0.7); font-size: 10px;
+        }
+
+        /* User prompt context — app uses fg.opacity(0.25), badgeSize */
+        .ag .session-prompt {
+            font-size: 9px; color: rgba(var(--pill-fg),0.25);
+            padding-left: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        /* Todo progress — app uses fg.opacity(0.35), badgeSize */
+        .ag .session-todo {
+            font-size: 9px; color: rgba(var(--pill-fg),0.35);
+            padding-left: 16px;
+        }
+
+        /* Completion card — matches CompletionCardView.swift */
+        .ag .completion-card {
+            margin: 4px 0 0 16px; padding: 6px 8px; border-radius: 6px;
+            /* App uses fg.opacity(0.04) */
+            background: rgba(var(--pill-fg),0.04);
+        }
+        .ag .completion-header {
+            display: flex; align-items: center; gap: 4px;
+            /* App uses fg.opacity(0.4), badgeSize (~9px at .m scale) */
+            font-size: 9px; font-weight: 500; color: rgba(var(--pill-fg),0.4); margin-bottom: 4px;
+        }
+        .ag .completion-icon { display: flex; align-items: center; }
+        .ag .completion-icon svg { fill: none; stroke: currentColor; }
+        .ag .completion-dismiss {
+            /* App uses fg.opacity(0.3) */
+            margin-left: auto; display: flex; align-items: center;
+            color: rgba(var(--pill-fg),0.3);
+        }
+        .ag .completion-dismiss svg { stroke: currentColor; }
+        .ag .completion-text {
+            /* App uses fg.opacity(0.6), detailSize (~9px at .m scale) */
+            font-size: 9.5px; color: rgba(var(--pill-fg),0.6);
+            line-height: 1.4; max-height: 60px; overflow: hidden;
         }
 
         .ag .approval-actions { display: flex; align-items: center; gap: 6px; }
@@ -623,23 +737,23 @@
         .ag .btn:hover { filter: brightness(1.15); }
         .ag .btn svg { fill: currentColor; }
 
-        .ag .btn-allow { background: rgba(34,197,94,0.7); color: #fff; }
-        .ag .btn-always { background: none; color: rgba(34,197,94,0.8); font-weight: 500; padding: 5px 4px; }
-        .ag .btn-deny { background: rgba(239,68,68,0.5); color: #fff; }
+        .ag .btn-allow { background: rgba(52,199,89,0.7); color: #fff; }
+        .ag .btn-always { background: none; color: rgba(52,199,89,0.8); font-weight: 500; padding: 5px 4px; }
+        .ag .btn-deny { background: rgba(255,59,48,0.5); color: #fff; }
         .ag .btn-skip { background: none; color: rgba(var(--pill-fg),0.4); font-size: 9px; font-weight: 500; margin-left: auto; }
-        .ag .btn-approve { background: rgba(34,197,94,0.7); color: #fff; }
-        .ag .btn-reject { background: rgba(239,68,68,0.5); color: #fff; }
-        .ag .btn-submit { background: rgba(88,166,255,0.7); color: #fff; }
+        .ag .btn-approve { background: rgba(52,199,89,0.7); color: #fff; }
+        .ag .btn-reject { background: rgba(255,59,48,0.5); color: #fff; }
+        .ag .btn-submit { background: rgba(10,132,255,0.7); color: #fff; }
 
         /* Question */
         .ag .question-row {
             padding: 8px 10px; border-radius: 8px;
-            background: rgba(88,166,255,0.06);
-            border: 0.5px solid rgba(88,166,255,0.15);
+            background: rgba(10,132,255,0.06);
+            border: 0.5px solid rgba(10,132,255,0.15);
             display: flex; flex-direction: column; gap: 6px;
         }
         .ag .question-header { display: flex; align-items: center; gap: 6px; }
-        .ag .question-icon { color: #58a6ff; display: flex; align-items: center; }
+        .ag .question-icon { color: #0a84ff; display: flex; align-items: center; }
         .ag .question-icon svg { fill: currentColor; }
         .ag .question-text {
             font-size: 10px; font-weight: 500; color: rgba(var(--pill-fg),0.85);
@@ -655,18 +769,18 @@
         }
         .ag .option-chip:hover { background: rgba(var(--pill-fg),0.1); }
         .ag .option-chip.selected {
-            background: rgba(88,166,255,0.7); border-color: #58a6ff;
+            background: rgba(10,132,255,0.7); border-color: #0a84ff;
             color: #fff; font-weight: 600;
         }
 
         /* Plan */
         .ag .plan-row {
             padding: 8px 10px; border-radius: 8px;
-            background: rgba(88,166,255,0.06);
-            border: 0.5px solid rgba(88,166,255,0.15);
+            background: rgba(10,132,255,0.06);
+            border: 0.5px solid rgba(10,132,255,0.15);
             display: flex; flex-direction: column; gap: 6px;
         }
-        .ag .plan-icon { color: #58a6ff; display: flex; align-items: center; }
+        .ag .plan-icon { color: #0a84ff; display: flex; align-items: center; }
         .ag .plan-icon svg { fill: currentColor; }
         .ag .plan-preview {
             font-size: 9px; color: rgba(var(--pill-fg),0.75);
@@ -676,13 +790,13 @@
         .ag .plan-preview .bullet { color: rgba(var(--pill-fg),0.5); margin-right: 4px; }
         .ag .plan-actions { display: flex; align-items: center; gap: 8px; }
         .ag .btn-open {
-            background: none; border: none; color: rgba(88,166,255,0.8);
+            background: none; border: none; color: rgba(10,132,255,0.8);
             font-size: 9px; font-weight: 500; cursor: pointer; margin-left: auto;
             display: flex; align-items: center; gap: 3px; font-family: inherit;
         }
         .ag .btn-open svg { fill: currentColor; }
         .ag .show-plan-btn {
-            background: none; border: none; color: rgba(88,166,255,0.7);
+            background: none; border: none; color: rgba(10,132,255,0.7);
             font-size: 9px; font-weight: 500; cursor: pointer;
             display: flex; align-items: center; gap: 3px; padding: 0; font-family: inherit;
         }
@@ -696,7 +810,7 @@
         .ag .spinner {
             border-radius: 50%;
             border: 1.5px solid transparent;
-            border-top-color: #22c55e; border-right-color: #22c55e; border-bottom-color: #22c55e;
+            border-top-color: #34c759; border-right-color: #34c759; border-bottom-color: #34c759;
             border-left-color: transparent;
             animation: ag-spin 0.8s linear infinite;
         }
@@ -707,10 +821,10 @@
             content: ''; position: absolute; inset: 0; border-radius: 50%;
             animation: ag-pulse 1s ease-in-out infinite;
         }
-        .ag .pulse-yellow { background: #eab308; }
-        .ag .pulse-yellow::after { background: rgba(234,179,8,0.3); }
-        .ag .pulse-red { background: #ef4444; }
-        .ag .pulse-red::after { background: rgba(239,68,68,0.3); }
+        .ag .pulse-yellow { background: #ffd60a; }
+        .ag .pulse-yellow::after { background: rgba(255,214,10,0.3); }
+        .ag .pulse-red { background: #ff3b30; }
+        .ag .pulse-red::after { background: rgba(255,59,48,0.3); }
         .ag .dot-gray { border-radius: 50%; background: #6b7280; }
     </style>
 </head>
@@ -751,70 +865,63 @@
     <section class="features">
         <h2>Features</h2>
 
-        <!-- Approve or Deny -->
-        <div class="feature-section">
-            <h3>Approve or Deny</h3>
-            <p>Allow, Always Allow, Deny, or Skip tool requests directly from the overlay. No terminal switching needed.</p>
-            <div class="feature-demo">
-                <div class="ag" id="demo-approval"></div>
-            </div>
-        </div>
-
-        <!-- Answer Questions -->
-        <div class="feature-section">
-            <h3>Answer Questions</h3>
-            <p>When your agent asks a question, pick from selectable options right in the overlay.</p>
-            <div class="feature-demo">
-                <div class="ag" id="demo-question"></div>
-            </div>
-        </div>
-
-        <!-- Review Plans -->
-        <div class="feature-section">
-            <h3>Review Plans</h3>
-            <p>See a rendered preview of proposed implementation plans. Approve, reject, or open the full file.</p>
-            <div class="feature-demo">
-                <div class="ag" id="demo-plan"></div>
-            </div>
-        </div>
-
-        <!-- Multi-session -->
-        <div class="feature-section">
-            <h3>Multiple Sessions</h3>
-            <p>Monitor all your agent sessions at once. Each row shows status, elapsed time, and quick actions.</p>
-            <div class="feature-demo">
-                <div class="ag" id="demo-multi"></div>
-            </div>
-        </div>
-
-        <!-- Other features grid -->
-        <div class="feature-grid">
-            <div class="feature-card">
-                <h3>Terminal Navigation</h3>
-                <p>Click any session to jump to the right terminal tab. Works with:</p>
-                <div class="terminals">
-                    <span class="terminal-badge">Ghostty</span>
-                    <span class="terminal-badge">Terminal.app</span>
-                    <span class="terminal-badge">iTerm2</span>
-                    <span class="terminal-badge">Kitty</span>
+        <div class="feature-demo-grid">
+            <!-- Approve with Inline Diffs -->
+            <div class="feature-section">
+                <h3>Approve with Inline Diffs</h3>
+                <p>Allow, Always Allow, Deny, or Skip tool requests. Edit approvals show red/green diffs so you can see exactly what changes. Write approvals indicate new vs. existing files.</p>
+                <div class="feature-demo">
+                    <div class="ag" id="demo-approval"></div>
                 </div>
             </div>
-            <div class="feature-card">
-                <h3>Multi-Monitor</h3>
-                <p>Pin to a specific screen, follow your cursor, or stick to the main display.</p>
+
+            <!-- Answer Questions -->
+            <div class="feature-section">
+                <h3>Answer Questions</h3>
+                <p>When your agent asks a question, pick from selectable options right in the overlay.</p>
+                <div class="feature-demo">
+                    <div class="ag" id="demo-question"></div>
+                </div>
             </div>
-            <div class="feature-card">
-                <h3>Global Hotkey</h3>
-                <p>Press <kbd>&#x2325;&#x21E7;C</kbd> from anywhere to jump to the most urgent session.</p>
+
+            <!-- Review Plans -->
+            <div class="feature-section">
+                <h3>Review Plans</h3>
+                <p>See a rendered preview of proposed implementation plans. Approve, reject, or open the full file.</p>
+                <div class="feature-demo">
+                    <div class="ag" id="demo-plan"></div>
+                </div>
             </div>
-            <div class="feature-card">
-                <h3>Customizable</h3>
-                <p>Font size, expanded width, Liquid Glass mode, dark/light theme, draggable position.</p>
+
+            <!-- Multi-session -->
+            <div class="feature-section">
+                <h3>Multiple Sessions</h3>
+                <p>Monitor all your agent sessions at once. Each row shows status, elapsed time, task progress, and the user prompt that started each task.</p>
+                <div class="feature-demo">
+                    <div class="ag" id="demo-multi"></div>
+                </div>
             </div>
-            <div class="feature-card wide">
-                <h3>Coming Soon</h3>
-                <p>Support for <strong>OpenAI Codex CLI</strong> and <strong>Google Gemini CLI</strong> — same overlay, all your agents in one place.</p>
+        </div>
+
+        <!-- Also includes -->
+        <div class="also-includes">
+            <h3>Also includes</h3>
+            <div class="includes-strip">
+                <span class="includes-pill">Rich Status <span class="includes-sub">Thinking · Running · Compacting</span></span>
+                <span class="includes-pill">Completion Cards <span class="includes-sub">See what the agent said</span></span>
+                <span class="includes-pill">Inline Diffs <span class="includes-sub">Red/green Edit previews</span></span>
+                <span class="includes-pill">Task Progress <span class="includes-sub">TodoWrite tracking</span></span>
+                <span class="includes-pill">Terminal Navigation <span class="includes-sub">Ghostty · Terminal · iTerm2 · Kitty</span></span>
+                <span class="includes-pill">Smart Auto-Expand <span class="includes-sub">Suppresses when terminal focused</span></span>
+                <span class="includes-pill">Multi-Monitor</span>
+                <span class="includes-pill">Keyboard Navigation <span class="includes-sub">Hotkey + Arrow/Number keys</span></span>
+                <span class="includes-pill">Draggable Pill</span>
+                <span class="includes-pill">Liquid Glass</span>
+                <span class="includes-pill">Dark / Light Mode</span>
+                <span class="includes-pill">Customizable Fonts &amp; Width</span>
+                <span class="includes-pill">Sleep Prevention</span>
             </div>
+            <p class="includes-coming">Coming soon: <strong>OpenAI Codex CLI</strong> and <strong>Google Gemini CLI</strong> support</p>
         </div>
     </section>
 
@@ -850,17 +957,23 @@ const SF = {
   folder:   `<svg width="10" height="10" viewBox="0 0 16 16"><path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h3.172a1.5 1.5 0 0 1 1.06.44l.828.828a.5.5 0 0 0 .354.146H13.5A1.5 1.5 0 0 1 15 4.914V12.5A1.5 1.5 0 0 1 13.5 14h-11A1.5 1.5 0 0 1 1 12.5v-9z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>`,
   check:    `<svg width="8" height="8" viewBox="0 0 12 12"><path d="M2 6.5l3 3 5-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   xmark:    `<svg width="8" height="8" viewBox="0 0 12 12"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
-  checkCircle: `<svg width="10" height="10" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#22c55e"/><path d="M4.5 8l2.5 2.5 4.5-5" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  checkCircle: `<svg width="10" height="10" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#34c759"/><path d="M4.5 8l2.5 2.5 4.5-5" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   questionBubble: `<svg width="12" height="12" viewBox="0 0 16 16"><path d="M8 1C4.134 1 1 3.686 1 7c0 1.886 1.075 3.555 2.737 4.622L3 14l3.078-1.538C6.7 12.82 7.336 13 8 13c3.866 0 7-2.686 7-6s-3.134-6-7-6z" fill="currentColor"/><text x="8" y="9.5" text-anchor="middle" font-size="7" font-weight="bold" fill="white" font-family="-apple-system,sans-serif">?</text></svg>`,
   docText:  `<svg width="10" height="12" viewBox="0 0 14 16"><path d="M2 1.5A1.5 1.5 0 0 1 3.5 0h5.086a1.5 1.5 0 0 1 1.06.44l2.915 2.914A1.5 1.5 0 0 1 13 4.414V14.5A1.5 1.5 0 0 1 11.5 16h-8A1.5 1.5 0 0 1 2 14.5v-13z" fill="none" stroke="currentColor" stroke-width="1.1"/><line x1="4.5" y1="7" x2="9.5" y2="7" stroke="currentColor" stroke-width="0.8"/><line x1="4.5" y1="9.5" x2="9.5" y2="9.5" stroke="currentColor" stroke-width="0.8"/><line x1="4.5" y1="12" x2="7.5" y2="12" stroke="currentColor" stroke-width="0.8"/></svg>`,
   globe:    `<svg width="10" height="10" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.1"/><ellipse cx="8" cy="8" rx="3" ry="6.5" fill="none" stroke="currentColor" stroke-width="1.1"/><line x1="1.5" y1="8" x2="14.5" y2="8" stroke="currentColor" stroke-width="1.1"/></svg>`,
   chevDown: `<svg width="8" height="8" viewBox="0 0 12 12"><path d="M2.5 4.5l3.5 3.5 3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   arrowUpRight: `<svg width="9" height="9" viewBox="0 0 14 14"><rect x="0.5" y="0.5" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M5 9l4-4M9 5v4h-4" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  textBubble: `<svg width="10" height="10" viewBox="0 0 16 16"><path d="M2 2.5A1.5 1.5 0 0 1 3.5 1h9A1.5 1.5 0 0 1 14 2.5v7A1.5 1.5 0 0 1 12.5 11H5.707l-2.853 2.854A.5.5 0 0 1 2 13.5v-11z" fill="none" stroke="currentColor" stroke-width="1.1"/><line x1="5" y1="5" x2="11" y2="5" stroke="currentColor" stroke-width="0.8"/><line x1="5" y1="7.5" x2="9" y2="7.5" stroke="currentColor" stroke-width="0.8"/></svg>`,
+  xmarkSmall: `<svg width="8" height="8" viewBox="0 0 10 10"><path d="M2 2l6 6M8 2l-6 6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
 };
 
 const IND = {
-  working:  '<div class="indicator spinner" style="border-top-color:#22c55e;border-right-color:#22c55e;border-bottom-color:#22c55e"></div>',
-  workingS: '<div class="indicator-small spinner" style="border-top-color:#22c55e;border-right-color:#22c55e;border-bottom-color:#22c55e"></div>',
+  working:  '<div class="indicator spinner" style="border-top-color:#34c759;border-right-color:#34c759;border-bottom-color:#34c759"></div>',
+  workingS: '<div class="indicator-small spinner" style="border-top-color:#34c759;border-right-color:#34c759;border-bottom-color:#34c759"></div>',
+  thinking: '<div class="indicator spinner" style="border-top-color:#32ade6;border-right-color:#32ade6;border-bottom-color:#32ade6"></div>',
+  thinkingS:'<div class="indicator-small spinner" style="border-top-color:#32ade6;border-right-color:#32ade6;border-bottom-color:#32ade6"></div>',
+  compacting:'<div class="indicator spinner" style="border-top-color:#ff9500;border-right-color:#ff9500;border-bottom-color:#ff9500"></div>',
+  compactingS:'<div class="indicator-small spinner" style="border-top-color:#ff9500;border-right-color:#ff9500;border-bottom-color:#ff9500"></div>',
   approval: '<div class="indicator pulse pulse-yellow"></div>',
   approvalS:'<div class="indicator-small pulse pulse-yellow"></div>',
   ready:    '<div class="indicator pulse pulse-red"></div>',
@@ -876,7 +989,7 @@ function createPill(container, config) {
   const id = container.id;
   const state = {
     expanded: config.startExpanded || false,
-    pinned: false,
+    pinned: config.pinned || false,
     sessions: JSON.parse(JSON.stringify(config.sessions)), // deep copy
     displayState: config.displayState,
     pillText: config.pillText,
@@ -892,7 +1005,7 @@ function createPill(container, config) {
         <div class="ag-pill-header">
           <div class="ag-pill-label" data-label="${id}"></div>
           <div class="ag-pill-buttons">
-            <button class="ag-pill-btn" data-pin="${id}" style="transform:rotate(45deg)">${SF.pin}</button>
+            <button class="ag-pill-btn${state.pinned ? ' pinned' : ''}" data-pin="${id}" style="transform:rotate(${state.pinned ? 0 : 45}deg)">${state.pinned ? SF.pinFill : SF.pin}</button>
             <button class="ag-pill-btn" data-settings="${id}">${SF.gear}</button>
           </div>
         </div>
@@ -931,15 +1044,62 @@ function createPill(container, config) {
   }
 
   function renderSession(s) {
-    const ind = IND[(s.state || 'idle') + 'S'] || IND.idleS;
+    const indKey = (s.state || 'idle') + 'S';
+    const ind = IND[indKey] || IND.idleS;
     const badge = s.mode ? `<span class="mode-badge ${s.mode}">${s.mode[0].toUpperCase()+s.mode.slice(1)}</span>` : '';
     const url = s.url ? `<div class="session-url"><span class="sf">${SF[s.url.icon]}</span> ${s.url.text}</div>` : '';
-    return `<div class="session-row"><div class="session-row-main">${ind}<div class="session-info"><div class="session-name">${s.name}</div><div class="session-detail">${s.detail}</div></div>${badge}<span class="session-time">${s.time}</span><div class="session-actions"><button><span class="sf">${SF.terminal}</span></button><button><span class="sf">${SF.folder}</span></button></div></div>${url}</div>`;
+    const prompt = s.prompt ? `<div class="session-prompt">${s.prompt}</div>` : '';
+    const todo = s.todo ? `<div class="session-todo">(${s.todo})</div>` : '';
+    const completion = s.completion ? `<div class="completion-card"><div class="completion-header"><span class="completion-icon">${SF.textBubble}</span> <span>Agent Response</span><span class="completion-dismiss">${SF.xmarkSmall}</span></div><div class="completion-text">${s.completion}</div></div>` : '';
+    return `<div class="session-row"><div class="session-row-main">${ind}<div class="session-info"><div class="session-name">${s.name}</div><div class="session-detail">${s.detail}</div></div>${badge}<span class="session-time">${s.time}</span><div class="session-actions"><button><span class="sf">${SF.terminal}</span></button><button><span class="sf">${SF.folder}</span></button></div></div>${url}${prompt}${todo}${completion}</div>`;
   }
 
   function renderApproval(s, idx, pid) {
-    const q = s.queueCount > 1 ? `<span style="font-size:9px;font-weight:600;color:rgba(234,179,8,0.7)">+${s.queueCount-1}</span>` : '';
-    return `<div class="approval-row"><div class="approval-header">${IND.approvalS}<span class="approval-name">${s.name}</span><span class="header-terminal">${SF.terminal}</span><span style="flex:1"></span><span class="tool-badge yellow">${s.tool}</span></div><div class="tool-summary">${s.summary}</div><div class="approval-actions"><button class="btn btn-allow" onclick="pillAction('${pid}',${idx},'allow')"><span class="sf">${SF.check}</span> Allow</button><button class="btn btn-always" onclick="pillAction('${pid}',${idx},'allow')">Always</button><button class="btn btn-deny" onclick="pillAction('${pid}',${idx},'deny')"><span class="sf">${SF.xmark}</span> Deny</button>${q}<button class="btn btn-skip" onclick="pillAction('${pid}',${idx},'deny')">Skip</button></div></div>`;
+    const q = s.queueCount > 1 ? `<span style="font-size:9px;font-weight:600;color:rgba(255,214,10,0.7)">+${s.queueCount-1}</span>` : '';
+    let detail = `<div class="tool-summary">${s.summary}</div>`;
+    // Inline diff for Edit tool — proper LCS line diff matching the app
+    if (s.diff) {
+      const diffHtml = computeDiffHtml(s.diff.old, s.diff.new);
+      detail = `<div class="edit-diff"><div class="diff-path">${s.diff.file}</div>${diffHtml}</div>`;
+    }
+    // Write new-file indicator
+    if (s.isNewFile !== undefined) {
+      const icon = s.isNewFile ? '📄+' : '✏️';
+      const label = s.isNewFile ? 'New file' : 'Overwrite';
+      detail = `<div class="write-indicator"><span>${icon}</span> <span class="write-label">${label}</span> <span class="write-path">${s.summary}</span></div>`;
+    }
+    return `<div class="approval-row"><div class="approval-header">${IND.approvalS}<span class="approval-name">${s.name}</span><span class="header-terminal">${SF.terminal}</span><span style="flex:1"></span><span class="tool-badge yellow">${s.tool}</span></div>${detail}<div class="approval-actions"><button class="btn btn-allow" onclick="pillAction('${pid}',${idx},'allow')"><span class="sf">${SF.check}</span> Allow</button><button class="btn btn-always" onclick="pillAction('${pid}',${idx},'allow')">Always</button><button class="btn btn-deny" onclick="pillAction('${pid}',${idx},'deny')"><span class="sf">${SF.xmark}</span> Deny</button>${q}<button class="btn btn-skip" onclick="pillAction('${pid}',${idx},'deny')">Skip</button></div></div>`;
+  }
+
+  function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // LCS-based line diff — matches EditDiffView.computeDiff in the app
+  function computeDiffHtml(oldStr, newStr) {
+    const oldL = oldStr.split('\n'), newL = newStr.split('\n');
+    const m = oldL.length, n = newL.length;
+    // LCS table
+    const dp = Array.from({length: m+1}, () => Array(n+1).fill(0));
+    for (let i = 1; i <= m; i++)
+      for (let j = 1; j <= n; j++)
+        dp[i][j] = oldL[i-1] === newL[j-1] ? dp[i-1][j-1]+1 : Math.max(dp[i-1][j], dp[i][j-1]);
+    // Backtrack
+    const lines = [];
+    let i = m, j = n;
+    while (i > 0 || j > 0) {
+      if (i > 0 && j > 0 && oldL[i-1] === newL[j-1]) {
+        lines.push({kind:'ctx', text:oldL[i-1]}); i--; j--;
+      } else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) {
+        lines.push({kind:'add', text:newL[j-1]}); j--;
+      } else {
+        lines.push({kind:'del', text:oldL[i-1]}); i--;
+      }
+    }
+    lines.reverse();
+    return lines.map(l => {
+      if (l.kind === 'del') return `<div class="diff-line diff-del"><span class="diff-prefix">−</span>${esc(l.text)}</div>`;
+      if (l.kind === 'add') return `<div class="diff-line diff-add"><span class="diff-prefix">+</span>${esc(l.text)}</div>`;
+      return `<div class="diff-line diff-ctx"><span class="diff-prefix"> </span>${esc(l.text)}</div>`;
+    }).join('');
   }
 
   function renderQuestion(s, idx, pid) {
@@ -1058,7 +1218,6 @@ setInterval(() => {
 
 // Hero: walkthrough pill (controlled by the walkthrough engine)
 createPill(document.getElementById('hero-pill'), {
-  static: true,
   startExpanded: false,
   displayState: 'idle',
   pillText: 'AgentGlance',
@@ -1187,8 +1346,8 @@ createPill(document.getElementById('hero-pill'), {
       '',
     ]);
     setPill({
-      displayState: 'working', pillText: 'Working...',
-      pillIndicator: 'working', sessions: [],
+      displayState: 'thinking', pillText: 'Thinking...',
+      pillIndicator: 'thinking', sessions: [],
     });
     await wait(1200);
 
@@ -1211,15 +1370,17 @@ createPill(document.getElementById('hero-pill'), {
     await wait(600);
 
     addLine('');
-    addLine(responseLine('I\'ll update the auth middleware to use JWT. Let me run the build first:'));
+    addLine(responseLine('I\'ll update the auth middleware to use JWT. Let me edit the token handler:'));
     await wait(600);
 
     // Phase 2: Permission request (Claude Code style bordered box)
     addLine('');
     addLine(`<div class="perm-box">
-      <div class="perm-title">Bash</div>
-      <div style="margin:4px 0"><span class="white">npm run build && npm test</span></div>
-      <div class="perm-desc">Claude wants to run a shell command</div>
+      <div class="perm-title">Edit</div>
+      <div style="margin:4px 0"><span class="white">src/auth/middleware.ts</span></div>
+      <div style="margin:2px 0;font-size:11px"><span style="color:#ff453a">- const token = getToken()</span></div>
+      <div style="margin:2px 0;font-size:11px"><span style="color:#34c759">+ const token = await refreshToken()</span></div>
+      <div class="perm-desc">Claude wants to edit a file</div>
       <div style="margin-top:6px">
         <div class="perm-opt"><span class="arrow">❯</span> <span class="sel">1. Yes</span></div>
         <div class="perm-opt">&nbsp; 2. Yes, and don't ask again</div>
@@ -1229,11 +1390,17 @@ createPill(document.getElementById('hero-pill'), {
 
     setPill({
       displayState: 'approval',
-      pillText: '~/Projects/MyApp: approve Bash?',
+      pillText: '~/Projects/MyApp: approve Edit?',
       pillIndicator: 'approval',
       sessions: [
-        { type: 'approval', name: '~/Projects/MyApp', tool: 'Bash',
-          summary: 'npm run build && npm test', time: '0m 12s', mode: 'plan' },
+        { type: 'approval', name: '~/Projects/MyApp', tool: 'Edit',
+          summary: '.../auth/middleware.ts', time: '0m 12s', mode: 'plan',
+          diff: {
+            file: '.../auth/middleware.ts',
+            old: 'const token = getToken()',
+            new: 'const token = await refreshToken()',
+          }
+        },
       ],
     });
     showHint('Click Allow or Deny on the overlay');
@@ -1244,13 +1411,13 @@ createPill(document.getElementById('hero-pill'), {
     // Remove the permission box and show result
     lines = lines.filter(l => !l.includes('perm-box'));
     if (approvalAction === 'allow') {
-      addLine(toolLine('Bash', 'npm run build && npm test'));
+      addLine(toolLine('Edit', 'src/auth/middleware.ts'));
       await wait(400);
-      addLine(toolResult('Build succeeded. <span class="white">42</span> tests passed'));
-      setPill({ displayState: 'working', pillText: 'Running Bash...', pillIndicator: 'working', sessions: [] });
+      addLine(toolResult('Updated JWT validation logic (+32 -18 lines)'));
+      setPill({ displayState: 'working', pillText: 'Running Edit...', pillIndicator: 'working', sessions: [] });
     } else {
       addLine(`<div class="result" style="color:#facc15">✕ Denied by user</div>`);
-      setPill({ displayState: 'working', pillText: 'Working...', pillIndicator: 'working', sessions: [] });
+      setPill({ displayState: 'working', pillText: 'Thinking...', pillIndicator: 'thinking', sessions: [] });
     }
     await wait(800);
 
@@ -1316,7 +1483,7 @@ createPill(document.getElementById('hero-pill'), {
     setPill({ displayState: 'working', pillText: 'Running Write...', pillIndicator: 'working', sessions: [] });
     await wait(800);
 
-    // Phase 4: Done
+    // Phase 4: Done — show completion card
     addLine('');
     addLine(responseLine('Done! Refactored the auth module to use JWT with ' + answer + ' for session storage. The migration script is ready to run.'));
 
@@ -1324,7 +1491,11 @@ createPill(document.getElementById('hero-pill'), {
       displayState: 'ready',
       pillText: '~/Projects/MyApp finished',
       pillIndicator: 'ready',
-      sessions: [],
+      sessions: [
+        { type: 'session', name: '~/Projects/MyApp', state: 'ready',
+          detail: 'Ready for next prompt', time: '1m 45s',
+          completion: 'Refactored the auth module to use JWT with ' + answer + ' for session storage. The migration script is ready to run.' },
+      ],
     });
     await wait(5000);
 
@@ -1344,20 +1515,28 @@ createPill(document.getElementById('hero-pill'), {
 })();
 
 
-// Approval demo
+// Approval demo — shows inline Edit diff
 createPill(document.getElementById('demo-approval'), {
   startExpanded: true,
+  pinned: true,
   displayState: 'approval',
-  pillText: '~/Projects/MyApp: approve Bash?',
+  pillText: '~/Projects/MyApp: approve Edit?',
   pillIndicator: 'approval',
   sessions: [
-    { type: 'approval', name: '~/Projects/MyApp', tool: 'Bash', summary: 'npm run build && npm test', time: '2m 15s', mode: 'plan' },
+    { type: 'approval', name: '~/Projects/MyApp', tool: 'Edit', summary: '.../auth/middleware.ts', time: '2m 15s', mode: 'plan',
+      diff: {
+        file: '.../auth/middleware.ts',
+        old: 'const token = getToken()\nif (!token) return null',
+        new: 'const token = await refreshToken()\nif (!token) throw new AuthError("expired")',
+      }
+    },
   ],
 });
 
 // Question demo
 createPill(document.getElementById('demo-question'), {
   startExpanded: true,
+  pinned: true,
   displayState: 'approval',
   pillText: '~/Projects/MyApp has a question',
   pillIndicator: 'approval',
@@ -1369,6 +1548,7 @@ createPill(document.getElementById('demo-question'), {
 // Plan demo
 createPill(document.getElementById('demo-plan'), {
   startExpanded: true,
+  pinned: true,
   displayState: 'approval',
   pillText: '~/Projects/MyApp: review plan',
   pillIndicator: 'approval',
@@ -1383,17 +1563,22 @@ createPill(document.getElementById('demo-plan'), {
   ],
 });
 
-// Multi-session demo
+// Multi-session demo — showcases rich states, prompts, todos, completion
 createPill(document.getElementById('demo-multi'), {
   startExpanded: true,
+  pinned: true,
   displayState: 'working',
-  pillText: 'Running Edit...',
-  pillIndicator: 'working',
-  width: 380,
+  pillText: 'Thinking...',
+  pillIndicator: 'thinking',
+  width: 340,
   sessions: [
-    { type: 'session', name: '~/Projects/MyApp', state: 'working', detail: 'Edit — 12 tools', time: '2m 15s', mode: 'plan' },
-    { type: 'session', name: '~/Projects/Backend', state: 'working', detail: 'Bash — 8 tools', time: '8m 42s', mode: 'auto', url: { icon: 'globe', text: 'https://api.example.com/v2/config' } },
-    { type: 'session', name: '~/Projects/Docs', state: 'ready', detail: 'Ready for next prompt', time: '15m 30s' },
+    { type: 'session', name: '~/Projects/MyApp', state: 'thinking', detail: 'Refactor the auth module...', time: '0m 8s', mode: 'plan',
+      prompt: 'Refactor the auth module to use JWT tokens' },
+    { type: 'session', name: '~/Projects/Backend', state: 'working', detail: 'Bash — 8 tools', time: '8m 42s', mode: 'auto',
+      prompt: 'Fix the failing API tests',
+      todo: '3 done, 1 in progress, 2 open' },
+    { type: 'session', name: '~/Projects/Docs', state: 'ready', detail: 'Ready for next prompt', time: '15m 30s',
+      completion: 'Added dark mode support. Created CSS custom properties for light/dark themes, added prefers-color-scheme media query, updated 3 components.' },
   ],
 });
 </script>
