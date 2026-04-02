@@ -29,7 +29,21 @@ struct HookPayload: Codable {
     // Session metadata
     let permission_mode: String?
 
-    init(session_id: String, cwd: String, hook_event_name: String, tool_name: String? = nil, tool_input: JSONValue? = nil, notification_type: String? = nil, reason: String? = nil, permission_mode: String? = nil) {
+    // Stop event: agent's last response message
+    let last_assistant_message: String?
+
+    // Session name (from --resume or Claude-generated title)
+    let session_name: String?
+
+    // Bridge enrichment: terminal environment data
+    let _ag_term_program: String?
+    let _ag_iterm_session_id: String?
+    let _ag_tmux: String?
+    let _ag_tmux_pane: String?
+    let _ag_kitty_window_id: String?
+    let _ag_tty: String?
+
+    init(session_id: String, cwd: String, hook_event_name: String, tool_name: String? = nil, tool_input: JSONValue? = nil, notification_type: String? = nil, reason: String? = nil, permission_mode: String? = nil, last_assistant_message: String? = nil, session_name: String? = nil, _ag_term_program: String? = nil, _ag_iterm_session_id: String? = nil, _ag_tmux: String? = nil, _ag_tmux_pane: String? = nil, _ag_kitty_window_id: String? = nil, _ag_tty: String? = nil) {
         self.session_id = session_id
         self.cwd = cwd
         self.hook_event_name = hook_event_name
@@ -38,6 +52,14 @@ struct HookPayload: Codable {
         self.notification_type = notification_type
         self.reason = reason
         self.permission_mode = permission_mode
+        self.last_assistant_message = last_assistant_message
+        self.session_name = session_name
+        self._ag_term_program = _ag_term_program
+        self._ag_iterm_session_id = _ag_iterm_session_id
+        self._ag_tmux = _ag_tmux
+        self._ag_tmux_pane = _ag_tmux_pane
+        self._ag_kitty_window_id = _ag_kitty_window_id
+        self._ag_tty = _ag_tty
     }
 
     static func test(sessionId: String, cwd: String, eventName: String, toolName: String? = nil) -> HookPayload {
@@ -54,6 +76,14 @@ struct HookPayload: Codable {
         notification_type = try container.decodeIfPresent(String.self, forKey: .notification_type)
         reason = try container.decodeIfPresent(String.self, forKey: .reason)
         permission_mode = try container.decodeIfPresent(String.self, forKey: .permission_mode)
+        last_assistant_message = try container.decodeIfPresent(String.self, forKey: .last_assistant_message)
+        session_name = try container.decodeIfPresent(String.self, forKey: .session_name)
+        _ag_term_program = try container.decodeIfPresent(String.self, forKey: ._ag_term_program)
+        _ag_iterm_session_id = try container.decodeIfPresent(String.self, forKey: ._ag_iterm_session_id)
+        _ag_tmux = try container.decodeIfPresent(String.self, forKey: ._ag_tmux)
+        _ag_tmux_pane = try container.decodeIfPresent(String.self, forKey: ._ag_tmux_pane)
+        _ag_kitty_window_id = try container.decodeIfPresent(String.self, forKey: ._ag_kitty_window_id)
+        _ag_tty = try container.decodeIfPresent(String.self, forKey: ._ag_tty)
     }
 }
 
@@ -95,5 +125,23 @@ enum JSONValue: Codable {
         case .array(let a): try container.encode(a)
         case .null: try container.encodeNil()
         }
+    }
+
+    /// Convenience: extract a string value from an object by key
+    subscript(key: String) -> String? {
+        if case .object(let obj) = self, case .string(let val) = obj[key] { return val }
+        return nil
+    }
+
+    /// Convenience: extract a nested JSONValue from an object by key
+    subscript(jsonKey key: String) -> JSONValue? {
+        if case .object(let obj) = self { return obj[key] }
+        return nil
+    }
+
+    /// Convenience: extract an array from an object by key
+    var asArray: [JSONValue]? {
+        if case .array(let arr) = self { return arr }
+        return nil
     }
 }
