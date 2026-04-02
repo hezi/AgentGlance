@@ -7,99 +7,21 @@ struct OnboardingView: View {
     @State private var checking = false
     @AppStorage(Constants.UserDefaultsKeys.port) private var port: Int = Int(Constants.defaultPort)
 
+    private static let bridgeCommand = "~/.agentglance/bin/agentglance-bridge"
+
     private var hooksJSON: String {
-        """
+        let cmd = Self.bridgeCommand
+        return """
         {
           "hooks": {
-            "UserPromptSubmit": [
-              {
-                "matcher": "",
-                "hooks": [
-                  {
-                    "type": "command",
-                    "command": "curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- http://localhost:\(port)/hook/UserPromptSubmit || true"
-                  }
-                ]
-              }
-            ],
-            "SessionStart": [
-              {
-                "matcher": "",
-                "hooks": [
-                  {
-                    "type": "command",
-                    "command": "curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- http://localhost:\(port)/hook/SessionStart || true"
-                  }
-                ]
-              }
-            ],
-            "SessionEnd": [
-              {
-                "matcher": "",
-                "hooks": [
-                  {
-                    "type": "command",
-                    "command": "curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- http://localhost:\(port)/hook/SessionEnd || true"
-                  }
-                ]
-              }
-            ],
-            "PreToolUse": [
-              {
-                "matcher": "",
-                "hooks": [
-                  {
-                    "type": "command",
-                    "command": "curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- http://localhost:\(port)/hook/PreToolUse || true"
-                  }
-                ]
-              }
-            ],
-            "PostToolUse": [
-              {
-                "matcher": "",
-                "hooks": [
-                  {
-                    "type": "command",
-                    "command": "curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- http://localhost:\(port)/hook/PostToolUse || true"
-                  }
-                ]
-              }
-            ],
-            "Stop": [
-              {
-                "matcher": "",
-                "hooks": [
-                  {
-                    "type": "command",
-                    "command": "curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- http://localhost:\(port)/hook/Stop || true"
-                  }
-                ]
-              }
-            ],
-            "Notification": [
-              {
-                "matcher": "",
-                "hooks": [
-                  {
-                    "type": "command",
-                    "command": "curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- http://localhost:\(port)/hook/Notification || true"
-                  }
-                ]
-              }
-            ],
-            "PermissionRequest": [
-              {
-                "matcher": "",
-                "hooks": [
-                  {
-                    "type": "command",
-                    "command": "curl -s --max-time 120 -X POST -H 'Content-Type: application/json' -d @- http://localhost:\(port)/hook/PermissionRequest || true",
-                    "timeout": 120
-                  }
-                ]
-              }
-            ]
+            "UserPromptSubmit": [{"matcher": "", "hooks": [{"type": "command", "command": "\(cmd)"}]}],
+            "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": "\(cmd)"}]}],
+            "SessionEnd": [{"matcher": "", "hooks": [{"type": "command", "command": "\(cmd)"}]}],
+            "PreToolUse": [{"matcher": "", "hooks": [{"type": "command", "command": "\(cmd)"}]}],
+            "PostToolUse": [{"matcher": "", "hooks": [{"type": "command", "command": "\(cmd)"}]}],
+            "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": "\(cmd)"}]}],
+            "Notification": [{"matcher": "", "hooks": [{"type": "command", "command": "\(cmd)"}]}],
+            "PermissionRequest": [{"matcher": "", "hooks": [{"type": "command", "command": "\(cmd)", "timeout": 120}]}]
           }
         }
         """
