@@ -10,6 +10,7 @@ final class AppState {
     let sessionManager = SessionManager()
     let sleepManager = SleepManager()
     let notificationManager = NotificationManager()
+    let hookConfigWatcher = HookConfigWatcher()
 
     var sleepPreventionEnabled: Bool {
         didSet {
@@ -97,13 +98,19 @@ final class AppState {
     }
 
     init() {
+        // Ignore SIGPIPE globally — socket clients may disconnect before we respond
+        signal(SIGPIPE, SIG_IGN)
+
         let port = UInt16(UserDefaults.standard.integer(forKey: Constants.UserDefaultsKeys.port))
         hookServer = HookServer(port: port > 0 ? port : Constants.defaultPort)
         sleepPreventionEnabled = UserDefaults.standard.bool(forKey: Constants.UserDefaultsKeys.sleepPreventionEnabled)
 
         setupBindings()
         hookServer.start()
+        installBridgeLauncher()
+        hookConfigWatcher.startWatching()
         notificationManager.setupCategories()
+        sessionManager.loadPersistedSessions()
         sessionManager.bootstrapFromRunningProcesses()
         createNotchWindow()
         registerGlobalHotkey()
@@ -153,7 +160,13 @@ final class AppState {
                 notificationManager.notifyAwaitingApproval(session: session)
                 playAlertSound()
                 if UserDefaults.standard.bool(forKey: Constants.UserDefaultsKeys.autoExpandOnApproval) {
-                    shouldAutoExpand = true
+                    // Feature 5: suppress expansion if user is already in the agent's terminal
+                    if UserDefaults.standard.bool(forKey: Constants.UserDefaultsKeys.suppressExpansionWhenInTerminal),
+                       isUserInSessionTerminal(session) {
+                        // User is looking at the right terminal — don't interrupt
+                    } else {
+                        shouldAutoExpand = true
+                    }
                 }
             case .ready:
                 notificationManager.notifyReady(session: session)
@@ -167,6 +180,47 @@ final class AppState {
             updateSleepPrevention()
             updateNotchVisibility()
         }
+    }
+
+    // MARK: - Bridge Installation
+
+    /// Install or update the bridge launcher script at ~/.agentglance/bin/agentglance-bridge
+    private func installBridgeLauncher() {
+        let dir = (NSHomeDirectory() as NSString).appendingPathComponent(".agentglance/bin")
+        let path = (dir as NSString).appendingPathComponent("agentglance-bridge")
+        let fm = FileManager.default
+
+        try? fm.createDirectory(atPath: dir, withIntermediateDirectories: true)
+
+        let script = """
+        #!/bin/bash
+        H=/Contents/Helpers/agentglance-bridge
+        for P in "/Applications/AgentGlance.app" "$HOME/Applications/AgentGlance.app"; do
+            [ -x "${P}${H}" ] && exec "${P}${H}" "$@"
+        done
+        # App not found — fall back to curl (silent, don't block Claude)
+        INPUT=$(cat)
+        EVENT=$(echo "$INPUT" | grep -o '"hook_event_name":"[^"]*"' | head -1 | cut -d'"' -f4)
+        PORT=${AG_PORT:-7483}
+        if [ "$EVENT" = "PermissionRequest" ]; then
+            echo "$INPUT" | curl -s --max-time 120 -X POST -H 'Content-Type: application/json' -d @- "http://localhost:${PORT}/hook/${EVENT}" 2>/dev/null
+        else
+            echo "$INPUT" | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- "http://localhost:${PORT}/hook/${EVENT}" 2>/dev/null || true
+        fi
+        """
+
+        try? script.write(toFile: path, atomically: true, encoding: .utf8)
+        chmod(path, 0o755)
+    }
+
+    // MARK: - Terminal Focus Detection
+
+    /// Returns true if the user's frontmost app is the terminal where this session runs
+    private func isUserInSessionTerminal(_ session: Session) -> Bool {
+        guard let termBundleId = session.terminalBundleId,
+              let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+        else { return false }
+        return frontmost == termBundleId
     }
 
     // MARK: - Sleep Prevention

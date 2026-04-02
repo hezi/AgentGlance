@@ -4,11 +4,25 @@ import os
 private let logger = Logger(subsystem: "app.agentglance", category: "TerminalActivator")
 
 enum TerminalActivator {
+    /// Track which terminals we've already requested permission for
+    private static var permissionRequested: Set<String> = []
+
     /// Activate the terminal tab/window running the given session
     static func activate(session: Session) {
         guard let bundleId = session.terminalBundleId else {
             logger.info("No terminal detected for session \(session.id)")
             return
+        }
+
+        // Lazily request automation permission on first activation for each terminal
+        if !permissionRequested.contains(bundleId) {
+            permissionRequested.insert(bundleId)
+            let appName = appNameForBundleId(bundleId)
+            if let appName {
+                runOsascript("""
+                    tell application "\(appName)" to return name of front window
+                """)
+            }
         }
 
         logger.info("Activating \(bundleId) for session \(session.projectName) (tty: \(session.tty ?? "?"), cwd: \(session.cwd), pid: \(session.processPID.map(String.init) ?? "?"), name: \(session.name ?? "nil"))")
@@ -35,7 +49,7 @@ enum TerminalActivator {
             tell application "System Events" to return name of first process
         """)
 
-        // Request for any running terminal that we support
+        // Request permission for all running terminals (not just the first)
         let terminals: [(bundleId: String, name: String)] = [
             ("com.mitchellh.ghostty", "Ghostty"),
             ("com.apple.Terminal", "Terminal"),
@@ -47,7 +61,6 @@ enum TerminalActivator {
                 runOsascript("""
                     tell application "\(terminal.name)" to return name of front window
                 """)
-                break // only request for the first running terminal
             }
         }
     }
@@ -453,6 +466,17 @@ enum TerminalActivator {
             return
         }
         app.activate()
+    }
+
+    // MARK: - Helpers
+
+    private static func appNameForBundleId(_ bundleId: String) -> String? {
+        switch bundleId {
+        case "com.mitchellh.ghostty": return "Ghostty"
+        case "com.apple.Terminal": return "Terminal"
+        case "com.googlecode.iterm2": return "iTerm"
+        default: return nil
+        }
     }
 
     // MARK: - osascript Helper

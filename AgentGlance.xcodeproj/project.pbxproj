@@ -26,6 +26,9 @@
 		A10017 /* ProcessScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10019 /* ProcessScanner.swift */; };
 		A10018 /* TerminalActivator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10020 /* TerminalActivator.swift */; };
 		A10019 /* AppIconViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10021 /* AppIconViews.swift */; };
+		A10022 /* CompletionCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10022 /* CompletionCardView.swift */; };
+		A10023 /* EditDiffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10023 /* EditDiffView.swift */; };
+		A10024 /* HookConfigWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10024 /* HookConfigWatcher.swift */; };
 		A10021 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = PD0001 /* KeyboardShortcuts */; };
 /* End PBXBuildFile section */
 
@@ -51,6 +54,9 @@
 		B10019 /* ProcessScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessScanner.swift; sourceTree = "<group>"; };
 		B10020 /* TerminalActivator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalActivator.swift; sourceTree = "<group>"; };
 		B10021 /* AppIconViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIconViews.swift; sourceTree = "<group>"; };
+		B10022 /* CompletionCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletionCardView.swift; sourceTree = "<group>"; };
+		B10023 /* EditDiffView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditDiffView.swift; sourceTree = "<group>"; };
+		B10024 /* HookConfigWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HookConfigWatcher.swift; sourceTree = "<group>"; };
 		P10001 /* AgentGlance.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AgentGlance.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -124,6 +130,7 @@
 				B10009 /* NotificationManager.swift */,
 				B10019 /* ProcessScanner.swift */,
 				B10020 /* TerminalActivator.swift */,
+				B10024 /* HookConfigWatcher.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -136,6 +143,8 @@
 				B10012 /* SettingsView.swift */,
 				B10013 /* OnboardingView.swift */,
 				B10021 /* AppIconViews.swift */,
+				B10022 /* CompletionCardView.swift */,
+				B10023 /* EditDiffView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -176,6 +185,7 @@
 				S10001 /* Sources */,
 				F10001 /* Frameworks */,
 				R10001 /* Resources */,
+				SP1002 /* Run Script — build bridge */,
 			);
 			buildRules = (
 			);
@@ -222,6 +232,22 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
 			shellScript = "cd \"$SRCROOT\"\nICON_STYLE=${ICON_STYLE:-suggestive}\n\n# Compile AppIconViews.swift + generator main into a temp binary\nBIN=$(mktemp)\nswiftc -o \"$BIN\" \\\n  AgentGlance/Views/AppIconViews.swift \\\n  scripts/generate-icon-main.swift \\\n  -framework SwiftUI -framework AppKit \\\n  2>&1\n\n# Run it\n\"$BIN\" \"$ICON_STYLE\"\nrm -f \"$BIN\"\n";
+		};
+		SP1002 /* Run Script — build bridge */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/AgentGlance/Bridge/agentglance-bridge.swift",
+			);
+			name = "Run Script — build bridge";
+			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/$(PRODUCT_NAME).app/Contents/Helpers/agentglance-bridge",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "set -e\nDEST=\"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Helpers\"\nmkdir -p \"$DEST\"\nswiftc -O -o \"${DEST}/agentglance-bridge\" \\\n  \"${SRCROOT}/AgentGlance/Bridge/agentglance-bridge.swift\" \\\n  -sdk \"$(xcrun --sdk macosx --show-sdk-path)\" \\\n  -target arm64-apple-macos14.0\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -297,6 +323,9 @@
 				A10017 /* ProcessScanner.swift in Sources */,
 				A10018 /* TerminalActivator.swift in Sources */,
 				A10019 /* AppIconViews.swift in Sources */,
+				A10022 /* CompletionCardView.swift in Sources */,
+				A10023 /* EditDiffView.swift in Sources */,
+				A10024 /* HookConfigWatcher.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
