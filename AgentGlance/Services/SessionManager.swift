@@ -61,7 +61,6 @@ final class SessionManager {
 
             let session = Session(id: info.sessionId, cwd: info.cwd)
             session.name = info.name
-                ?? ProcessScanner.readTranscriptTitle(sessionId: info.sessionId, cwd: info.cwd)
             session.startTime = Date(timeIntervalSince1970: TimeInterval(info.startedAt) / 1000)
             session.state = .idle
             session.processPID = info.pid
@@ -114,168 +113,141 @@ final class SessionManager {
     }
 
     private func getOrCreateSession(_ event: HookPayload) -> Session {
-        logger.info("[match] getOrCreateSession hook_sid=\(event.session_id) cwd=\(event.cwd) event=\(event.hook_event_name)")
-
+        // Stage 0: Direct match by hook session_id (canonical, most common path)
         if let existing = sessions[event.session_id] {
             existing.lastActivity = Date()
             existing.cwd = event.cwd
             if let mode = event.permission_mode { existing.permissionMode = mode }
-            // Retry enrichment if missing terminal info or name, but throttle to avoid
-            // scanning session files on every event (at most once per 30 seconds)
-            if existing.processPID == nil || existing.name == nil {
-                let now = Date()
-                if existing.lastEnrichmentAttempt == nil ||
-                    now.timeIntervalSince(existing.lastEnrichmentAttempt!) > 30 {
-                    existing.lastEnrichmentAttempt = now
-                    logger.info("[match] found existing session, retrying enrichment (name=\(existing.name ?? "<nil>") pid=\(existing.processPID.map(String.init) ?? "<nil>"))")
-                    enrichFromSessionFiles(existing)
-                }
-            }
+            if let name = event.session_name, !name.isEmpty { existing.name = name }
+            applyBridgeEnrichment(session: existing, event: event)
             return existing
         }
 
-        // Check if there's a bootstrapped session that matches this hook event.
-        // The sessionId from ~/.claude/sessions/*.json often differs from the hook's
-        // session_id, and the cwd may differ too (session file has launch dir,
-        // hook has project dir). Match by: name, cwd containment, or same leaf dir.
-        // Only consider sessions that haven't received any hook events yet (toolCount == 0)
-        // to avoid stealing an already-active session.
-        let candidates = sessions.values.filter { $0.toolCount == 0 }
-        logger.info("[match] no existing session, checking \(candidates.count) bootstrap candidates: \(candidates.map { "\($0.id.prefix(8))… name=\($0.name ?? "<nil>") cwd=\($0.cwd)" }.joined(separator: ", "))")
-
-        let hookProject = (event.cwd as NSString).lastPathComponent
-
-        // Prioritized passes: most specific match first
-        let bootstrapped: Session? = {
-            // Pass 1: exact cwd match (most specific)
-            let exactCwd = candidates.filter { $0.cwd == event.cwd }
-            if exactCwd.count == 1 {
-                logger.info("[match] ✓ exact cwd match → \(exactCwd[0].id.prefix(8))…")
-                return exactCwd[0]
-            } else if exactCwd.count > 1 {
-                logger.info("[match] ambiguous: \(exactCwd.count) candidates with exact cwd, skipping")
-            }
-
-            // Pass 2: session name matches hook's project directory
-            let nameMatch = candidates.filter { $0.name != nil && $0.name == hookProject }
-            if nameMatch.count == 1 {
-                logger.info("[match] ✓ name match → \(nameMatch[0].id.prefix(8))… name=\(nameMatch[0].name ?? "")")
-                return nameMatch[0]
-            } else if nameMatch.count > 1 {
-                logger.info("[match] ambiguous: \(nameMatch.count) candidates with name '\(hookProject)', skipping")
-            }
-
-            // Pass 3: hook cwd is inside bootstrapped session's cwd (least specific)
-            let parentMatch = candidates.filter { event.cwd.hasPrefix($0.cwd + "/") }
-            if parentMatch.count == 1 {
-                logger.info("[match] ✓ parent cwd match → \(parentMatch[0].id.prefix(8))… cwd=\(parentMatch[0].cwd)")
-                return parentMatch[0]
-            } else if parentMatch.count > 1 {
-                // Multiple parent matches — prefer the most specific (longest cwd)
-                let best = parentMatch.max(by: { $0.cwd.count < $1.cwd.count })!
-                let tied = parentMatch.filter { $0.cwd.count == best.cwd.count }
-                if tied.count == 1 {
-                    logger.info("[match] ✓ best parent cwd match → \(best.id.prefix(8))… cwd=\(best.cwd)")
-                    return best
-                }
-                logger.info("[match] ambiguous: \(parentMatch.count) parent cwd matches, skipping")
-            }
-
-            return nil
-        }()
+        // Stage 1: Check for a bootstrap session with exact same cwd (pre-hook session)
+        let bootstrapped = sessions.values.first { $0.toolCount == 0 && $0.cwd == event.cwd }
 
         if let bootstrapped {
-            // Re-key the bootstrapped session with the hook's session_id
-            logger.info("[match] ✓ merged bootstrap \(bootstrapped.id.prefix(8))… → hook sid \(event.session_id.prefix(8))… name=\(bootstrapped.name ?? "<nil>") pid=\(bootstrapped.processPID.map(String.init) ?? "<nil>")")
+            logger.info("[match] merged bootstrap \(bootstrapped.id.prefix(8))… → \(event.session_id.prefix(8))…")
             sessions.removeValue(forKey: bootstrapped.id)
             let merged = Session(id: event.session_id, cwd: event.cwd)
-            merged.name = bootstrapped.name
+            merged.name = event.session_name ?? bootstrapped.name
             merged.startTime = bootstrapped.startTime
             merged.lastActivity = Date()
-            // Carry over terminal info from bootstrapped session
             merged.processPID = bootstrapped.processPID
             merged.tty = bootstrapped.tty
             merged.terminalBundleId = bootstrapped.terminalBundleId
             merged.permissionMode = event.permission_mode
+            applyBridgeEnrichment(session: merged, event: event)
             sessions[event.session_id] = merged
+            persistSessionTerminals()
             return merged
         }
 
-        logger.info("[match] no bootstrap match, creating new session")
+        // Stage 2: New session
         let session = Session(id: event.session_id, cwd: event.cwd)
         session.permissionMode = event.permission_mode
-        enrichFromSessionFiles(session)
+        if let name = event.session_name, !name.isEmpty { session.name = name }
+        applyBridgeEnrichment(session: session, event: event)
         sessions[event.session_id] = session
+        persistSessionTerminals()
         return session
     }
 
-    /// Try to find terminal info and name for a session by scanning session files
-    private func enrichFromSessionFiles(_ session: Session) {
-        let needsTerminal = session.processPID == nil
-        let needsName = session.name == nil
-        guard needsTerminal || needsName else {
-            logger.info("[enrich] skip session \(session.id.prefix(8))… — already has terminal=\(!needsTerminal) name=\(!needsName)")
-            return
+    // MARK: - Bridge Enrichment
+
+    /// Apply terminal environment data injected by the bridge binary
+    private func applyBridgeEnrichment(session: Session, event: HookPayload) {
+        var changed = false
+        if let tty = event._ag_tty, !tty.isEmpty, session.tty == nil {
+            session.tty = tty
+            changed = true
         }
-
-        logger.info("[enrich] session \(session.id.prefix(8))… needs: \(needsTerminal ? "terminal " : "")\(needsName ? "name" : "") | cwd=\(session.cwd)")
-
-        let detected = ProcessScanner.detectRunningSessions()
-        logger.info("[enrich] found \(detected.count) running session files: \(detected.map { "pid=\($0.pid) sid=\($0.sessionId.prefix(8))… name=\($0.name ?? "<nil>") cwd=\($0.cwd)" }.joined(separator: ", "))")
-
-        // PIDs already claimed by other tracked sessions — exclude from fuzzy matching
-        let claimedPIDs = Set(sessions.values.compactMap { s -> Int? in
-            guard s.id != session.id else { return nil }
-            return s.processPID
-        })
-        let unclaimed = detected.filter { !claimedPIDs.contains($0.pid) }
-        if claimedPIDs.count > 0 {
-            logger.info("[enrich] claimed PIDs: \(claimedPIDs.sorted()) → \(unclaimed.count) unclaimed session files")
+        if let termProgram = event._ag_term_program, session.terminalBundleId == nil {
+            session.terminalBundleId = Self.bundleIdForTermProgram(termProgram)
+            changed = true
         }
-
-        // Exact sessionId match is always safe (use full list)
-        if let m = detected.first(where: { $0.sessionId == session.id }) {
-            logger.info("[enrich] ✓ exact sessionId match → pid=\(m.pid) name=\(m.name ?? "<nil>")")
-            applyEnrichment(session, from: m, needsTerminal: needsTerminal, needsName: needsName)
-            return
+        if changed {
+            persistSessionTerminals()
         }
-        logger.info("[enrich] no exact sessionId match")
-
-        // Fuzzy matches only consider unclaimed session files
-        if let m = unclaimed.first(where: { session.cwd.hasPrefix($0.cwd) }) {
-            logger.info("[enrich] ✓ cwd prefix match → pid=\(m.pid) name=\(m.name ?? "<nil>") file_cwd=\(m.cwd)")
-            applyEnrichment(session, from: m, needsTerminal: needsTerminal, needsName: needsName)
-            return
-        }
-
-        let leaf = (session.cwd as NSString).lastPathComponent
-        if let m = unclaimed.first(where: { $0.name != nil && leaf == $0.name }) {
-            logger.info("[enrich] ✓ leaf name match → pid=\(m.pid) name=\(m.name ?? "<nil>") leaf=\(leaf)")
-            applyEnrichment(session, from: m, needsTerminal: needsTerminal, needsName: needsName)
-            return
-        }
-
-        logger.info("[enrich] ✗ no match found for session \(session.id.prefix(8))…")
     }
 
-    private func applyEnrichment(_ session: Session, from match: ClaudeSessionInfo, needsTerminal: Bool, needsName: Bool) {
-        if needsTerminal {
-            session.processPID = match.pid
-            session.tty = ProcessScanner.getTTY(pid: match.pid)
-            session.terminalBundleId = ProcessScanner.getTerminalApp(pid: match.pid)
-            logger.info("[enrich] set terminal: pid=\(match.pid) tty=\(session.tty ?? "<nil>") terminal=\(session.terminalBundleId ?? "<nil>")")
+    private static func bundleIdForTermProgram(_ prog: String) -> String? {
+        switch prog.lowercased() {
+        case "apple_terminal": return "com.apple.Terminal"
+        case "iterm.app", "iterm2": return "com.googlecode.iterm2"
+        case "ghostty", "xterm-ghostty": return "com.mitchellh.ghostty"
+        case "kitty": return "net.kovidgoyal.kitty"
+        case "warpterm": return "dev.warp.Warp-Stable"
+        default: return nil
         }
-        if needsName, let name = match.name {
-            session.name = name
-            logger.info("[enrich] set name: '\(name)' (from session file)")
-        } else if needsName {
-            // Fallback: read custom-title from the JSONL transcript
-            if let title = ProcessScanner.readTranscriptTitle(sessionId: session.id, cwd: session.cwd) {
-                session.name = title
-                logger.info("[enrich] set name: '\(title)' (from transcript)")
-            } else {
-                logger.info("[enrich] no name found (session file or transcript)")
+    }
+
+    // MARK: - Session Terminal Persistence
+
+    private static let sessionTerminalsPath: String = {
+        (NSHomeDirectory() as NSString).appendingPathComponent(".agentglance/session-terminals.json")
+    }()
+
+    private var persistDebounce: DispatchWorkItem?
+
+    /// Write session→terminal mappings to disk (debounced)
+    private func persistSessionTerminals() {
+        persistDebounce?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            self?.writeSessionTerminals()
+        }
+        persistDebounce = work
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 0.5, execute: work)
+    }
+
+    private func writeSessionTerminals() {
+        var entries: [String: [String: Any]] = [:]
+        for (id, session) in sessions where session.state != .complete {
+            var entry: [String: Any] = [
+                "cwd": session.cwd,
+                "updatedAt": Int(Date().timeIntervalSince1970),
+            ]
+            if let tty = session.tty { entry["tty"] = tty }
+            if let bundleId = session.terminalBundleId { entry["terminalBundleId"] = bundleId }
+            if let pid = session.processPID { entry["pid"] = pid }
+            if let name = session.name { entry["name"] = name }
+            entries[id] = entry
+        }
+
+        guard let data = try? JSONSerialization.data(withJSONObject: entries, options: [.prettyPrinted, .sortedKeys]) else { return }
+        let dir = (Self.sessionTerminalsPath as NSString).deletingLastPathComponent
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        try? data.write(to: URL(fileURLWithPath: Self.sessionTerminalsPath))
+    }
+
+    /// Load persisted session→terminal mappings on startup
+    func loadPersistedSessions() {
+        guard let data = FileManager.default.contents(atPath: Self.sessionTerminalsPath),
+              let entries = try? JSONSerialization.jsonObject(with: data) as? [String: [String: Any]] else { return }
+
+        let now = Int(Date().timeIntervalSince1970)
+        let maxAge = 86400 // 24 hours
+
+        for (id, entry) in entries {
+            guard let cwd = entry["cwd"] as? String,
+                  let updatedAt = entry["updatedAt"] as? Int,
+                  now - updatedAt < maxAge else { continue }
+
+            // Verify PID is still alive if present
+            if let pid = entry["pid"] as? Int {
+                guard ProcessScanner.isProcessRunning(pid: pid) else { continue }
             }
+
+            guard sessions[id] == nil else { continue }
+
+            let session = Session(id: id, cwd: cwd)
+            session.tty = entry["tty"] as? String
+            session.terminalBundleId = entry["terminalBundleId"] as? String
+            session.processPID = entry["pid"] as? Int
+            session.name = entry["name"] as? String
+            session.state = .idle
+            sessions[id] = session
+            logger.info("Restored session from disk: \(session.name ?? id.prefix(8).description) tty=\(session.tty ?? "?")")
         }
     }
 
@@ -297,6 +269,15 @@ final class SessionManager {
         let session = getOrCreateSession(event)
         session.currentTool = nil
         session.pendingToolSummary = nil
+        session.workingDetail = .thinking
+        session.lastAssistantMessage = nil
+        session.completionCardVisible = false
+
+        // Feature 10: capture user prompt for context display
+        if let prompt = event.tool_input?["prompt"] {
+            session.lastUserPrompt = String(prompt.prefix(120))
+        }
+
         transition(session, to: .working)
     }
 
@@ -304,10 +285,27 @@ final class SessionManager {
         let session = getOrCreateSession(event)
         session.currentTool = event.tool_name
         session.toolCount += 1
+        session.workingDetail = .runningTool
         session.pendingToolSummary = Self.extractToolSummary(
             toolName: event.tool_name,
             toolInput: event.tool_input
         )
+
+        // Feature 8: track TodoWrite progress
+        if event.tool_name == "TodoWrite", let todos = event.tool_input?[jsonKey: "todos"]?.asArray {
+            var progress = TodoProgress()
+            for todo in todos {
+                if let status = todo["status"] {
+                    switch status {
+                    case "completed": progress.completed += 1
+                    case "in_progress": progress.inProgress += 1
+                    default: progress.open += 1
+                    }
+                }
+            }
+            session.todoProgress = progress
+        }
+
         logger.info("PreToolUse: tool=\(event.tool_name ?? "?") summary=\(session.pendingToolSummary ?? "nil")")
         transition(session, to: .working)
     }
@@ -324,11 +322,23 @@ final class SessionManager {
         let session = getOrCreateSession(event)
         session.currentTool = nil
         session.pendingToolSummary = nil
+        session.workingDetail = nil
+
+        // Feature 7: capture last assistant message for completion card
+        if let msg = event.last_assistant_message, !msg.isEmpty {
+            session.lastAssistantMessage = msg
+            session.completionCardVisible = true
+        } else if let msg = event.tool_input?["last_assistant_message"], !msg.isEmpty {
+            session.lastAssistantMessage = msg
+            session.completionCardVisible = true
+        }
+
         transition(session, to: .ready)
     }
 
     private func handlePermissionRequest(_ event: HookPayload) {
         let session = getOrCreateSession(event)
+        session.workingDetail = nil
         if let toolName = event.tool_name {
             session.currentTool = toolName
             session.pendingToolSummary = Self.extractToolSummary(
@@ -364,6 +374,10 @@ final class SessionManager {
         if event.notification_type == "permission_prompt" {
             // Fallback: also catch permission prompts from Notification events
             transition(session, to: .awaitingApproval)
+        } else if event.notification_type == "compact" {
+            // Feature 4: compacting context window
+            session.workingDetail = .compacting
+            onStateChange?(session, session.state)
         } else {
             onStateChange?(session, session.state)
         }
@@ -487,6 +501,21 @@ final class SessionManager {
         case "AskUserQuestion":
             if case .object(let obj) = toolInput, case .string(let question) = obj["question"] {
                 return question
+            }
+
+        case "TodoWrite":
+            if case .object(let obj) = toolInput, case .array(let todos) = obj["todos"] {
+                var done = 0, prog = 0, open = 0
+                for todo in todos {
+                    if case .object(let t) = todo, case .string(let status) = t["status"] {
+                        switch status {
+                        case "completed": done += 1
+                        case "in_progress": prog += 1
+                        default: open += 1
+                        }
+                    }
+                }
+                return "\(done) done, \(prog) in progress, \(open) open"
             }
 
         default:

@@ -136,74 +136,8 @@ enum ProcessScanner {
         return ppid > 0 ? ppid : nil
     }
 
-    private static func isProcessRunning(pid: Int) -> Bool {
+    static func isProcessRunning(pid: Int) -> Bool {
         kill(pid_t(pid), 0) == 0
-    }
-
-    // MARK: - JSONL Title Extraction
-
-    private static let projectsDir = NSString("~/.claude/projects").expandingTildeInPath
-
-    /// Read the last `custom-title` from a session's JSONL transcript.
-    /// Path: ~/.claude/projects/<cwd-encoded>/<sessionId>.jsonl
-    /// Reads from the end of the file to find the most recent title efficiently.
-    static func readTranscriptTitle(sessionId: String, cwd: String) -> String? {
-        let encodedCwd = cwd.replacingOccurrences(of: "/", with: "-")
-        let jsonlPath = (projectsDir as NSString)
-            .appendingPathComponent(encodedCwd)
-            .appending("/\(sessionId).jsonl")
-
-        guard let fileHandle = FileHandle(forReadingAtPath: jsonlPath) else { return nil }
-        defer { fileHandle.closeFile() }
-
-        // Read from the end in chunks to find the last custom-title line
-        let fileSize = fileHandle.seekToEndOfFile()
-        guard fileSize > 0 else { return nil }
-
-        let chunkSize: UInt64 = 8192
-        var lastTitle: String?
-        var offset = fileSize
-
-        // For small files, just read the whole thing
-        if fileSize <= chunkSize * 4 {
-            fileHandle.seek(toFileOffset: 0)
-            let data = fileHandle.readDataToEndOfFile()
-            if let content = String(data: data, encoding: .utf8) {
-                for line in content.components(separatedBy: .newlines).reversed() {
-                    if let title = extractCustomTitle(from: line) {
-                        return title
-                    }
-                }
-            }
-            return nil
-        }
-
-        // For large files, read backwards in chunks
-        while offset > 0 {
-            let readSize = min(chunkSize, offset)
-            offset -= readSize
-            fileHandle.seek(toFileOffset: offset)
-            let data = fileHandle.readData(ofLength: Int(readSize))
-            guard let chunk = String(data: data, encoding: .utf8) else { continue }
-
-            for line in chunk.components(separatedBy: .newlines).reversed() {
-                if let title = extractCustomTitle(from: line) {
-                    return title
-                }
-            }
-        }
-
-        return lastTitle
-    }
-
-    private static func extractCustomTitle(from line: String) -> String? {
-        guard line.contains("\"custom-title\"") else { return nil }
-        guard let data = line.data(using: .utf8),
-              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              obj["type"] as? String == "custom-title",
-              let title = obj["customTitle"] as? String,
-              !title.isEmpty else { return nil }
-        return title
     }
 
     /// Repair truncated session JSON files.
