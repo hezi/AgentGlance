@@ -503,24 +503,22 @@
             align-items: center;
         }
 
+        /* Single container for pill + panel — transitions width as one unit */
         .ag-pill {
+            background: var(--pill-bg);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: width 0.35s cubic-bezier(0.4,0,0.2,1);
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .ag-pill-bar {
             display: flex;
             align-items: center;
             justify-content: center;
             height: 36px;
             padding: 0 16px;
-            border-radius: 18px;
-            background: var(--pill-bg);
-            cursor: pointer;
-            transition: width 0.35s cubic-bezier(0.4,0,0.2,1),
-                        border-radius 0.35s cubic-bezier(0.4,0,0.2,1);
-            overflow: hidden;
-            user-select: none;
-            position: relative;
-            z-index: 2;
-        }
-        .ag-pill.expanded {
-            border-radius: 20px 20px 0 0;
         }
 
         .ag-pill-header {
@@ -574,19 +572,18 @@
         .ag-pill-btn svg { fill: currentColor; }
 
         .ag-panel {
-            background: var(--pill-bg);
-            border-radius: 0 0 20px 20px;
-            padding: 2px 10px 10px;
+            padding: 0 10px;
             display: flex;
             flex-direction: column;
             gap: 4px;
             max-height: 0;
             overflow: hidden;
             opacity: 0;
-            transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease;
-            z-index: 1;
+            transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1),
+                        opacity 0.25s ease,
+                        padding 0.35s cubic-bezier(0.4,0,0.2,1);
         }
-        .ag-panel.visible { max-height: 600px; opacity: 1; }
+        .ag-panel.visible { max-height: 600px; opacity: 1; padding: 2px 10px 10px; }
 
         /* ── Rows ── */
         .ag .session-row {
@@ -1002,15 +999,17 @@ function createPill(container, config) {
   container.innerHTML = `
     <div class="ag-wrap">
       <div class="ag-pill" style="width:${state.expanded ? state.width : state.collapsedWidth}px" data-id="${id}">
-        <div class="ag-pill-header">
-          <div class="ag-pill-label" data-label="${id}"></div>
-          <div class="ag-pill-buttons">
-            <button class="ag-pill-btn${state.pinned ? ' pinned' : ''}" data-pin="${id}" style="transform:rotate(${state.pinned ? 0 : 45}deg)">${state.pinned ? SF.pinFill : SF.pin}</button>
-            <button class="ag-pill-btn" data-settings="${id}">${SF.gear}</button>
+        <div class="ag-pill-bar">
+          <div class="ag-pill-header">
+            <div class="ag-pill-label" data-label="${id}"></div>
+            <div class="ag-pill-buttons">
+              <button class="ag-pill-btn${state.pinned ? ' pinned' : ''}" data-pin="${id}" style="transform:rotate(${state.pinned ? 0 : 45}deg)">${state.pinned ? SF.pinFill : SF.pin}</button>
+              <button class="ag-pill-btn" data-settings="${id}">${SF.gear}</button>
+            </div>
           </div>
         </div>
+        <div class="ag-panel" data-panel="${id}"></div>
       </div>
-      <div class="ag-panel" style="width:${state.width}px" data-panel="${id}"></div>
     </div>`;
 
   const pillEl = container.querySelector(`[data-id="${id}"]`);
