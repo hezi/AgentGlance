@@ -6,6 +6,21 @@
         <description>Most recent changes with links to updates.</description>
         <language>en</language>
 
+        <item>
+            <title>Version 1.3.0</title>
+            <sparkle:version>4</sparkle:version>
+            <sparkle:shortVersionString>1.3.0</sparkle:shortVersionString>
+            <sparkle:releaseNotesLink>https://github.com/hezi/AgentGlance/releases/tag/v1.3.0</sparkle:releaseNotesLink>
+            <pubDate>Wed, 08 Apr 2026 19:43:02 +0100</pubDate>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure
+                url="https://github.com/hezi/AgentGlance/releases/download/v1.3.0/AgentGlance-v1.3.0.zip"
+                length="2471744"
+                type="application/octet-stream"
+                sparkle:edSignature="W1354W2M1uo9HetBdXPvLCCwbAzkw97kWgJuYKVnooM7CzFGqCi1W2QSrrISkuwgf8U88KLHo2sRhFAWx3JdCQ=="
+            />
+        </item>
+
         <!-- Add new items here when releasing. Most recent first. -->
         <!--
         <item>
