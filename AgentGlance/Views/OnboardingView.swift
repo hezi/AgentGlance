@@ -122,12 +122,10 @@ struct OnboardingView: View {
 
     private func checkSettings() {
         checking = true
-        DispatchQueue.global().async {
+        Task { @MainActor in
             let found = appState.hookConfigWatcher.verifyClaudeHooks()
-            DispatchQueue.main.async {
-                hooksDetected = found
-                checking = false
-            }
+            hooksDetected = found
+            checking = false
         }
     }
 

@@ -214,8 +214,11 @@ if [ -f "$APPCAST_PATH" ]; then
         ED_SIG=$(echo "$SPARKLE_SIGN" | grep -o 'sparkle:edSignature="[^"]*"' | sed 's/sparkle:edSignature="//' | sed 's/"$//' || true)
     fi
 
-    # Build the new item XML
-    NEW_ITEM="        <item>
+    # Build the new item XML in a temp file
+    ITEM_TMP="$BUILD_DIR/sparkle-item.xml"
+    cat > "$ITEM_TMP" << ITEMEOF
+
+        <item>
             <title>Version ${VERSION}</title>
             <sparkle:version>${BUILD}</sparkle:version>
             <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
@@ -223,26 +226,16 @@ if [ -f "$APPCAST_PATH" ]; then
             <pubDate>${PUB_DATE}</pubDate>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure
-                url=\"${DOWNLOAD_URL}\"
-                length=\"${RELEASE_SIZE}\"
-                type=\"application/octet-stream\"
-                sparkle:edSignature=\"${ED_SIG}\"
+                url="${DOWNLOAD_URL}"
+                length="${RELEASE_SIZE}"
+                type="application/octet-stream"
+                sparkle:edSignature="${ED_SIG}"
             />
-        </item>"
+        </item>
+ITEMEOF
 
-    # Insert after the <language>en</language> line (before any existing items or comments)
-    # Use a temp file for the insertion
-    APPCAST_TMP="$BUILD_DIR/appcast-new.xml"
-    awk -v item="$NEW_ITEM" '
-        /<language>en<\/language>/ {
-            print
-            print ""
-            print item
-            next
-        }
-        { print }
-    ' "$APPCAST_PATH" > "$APPCAST_TMP"
-    cp "$APPCAST_TMP" "$APPCAST_PATH"
+    # Insert after the <language>en</language> line
+    sed -i '' "/<language>en<\/language>/r $ITEM_TMP" "$APPCAST_PATH"
 
     info "Updated $APPCAST_PATH with v${VERSION}"
     if [ -z "$ED_SIG" ]; then

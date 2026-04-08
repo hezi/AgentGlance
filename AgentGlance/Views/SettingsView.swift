@@ -115,7 +115,7 @@ private struct GeneralPane: View {
                     }
                 }
 
-                if SessionGroupMode(rawValue: groupModeRaw) != .none {
+                if SessionGroupMode(rawValue: groupModeRaw) != SessionGroupMode.none {
                     Picker("Sort groups", selection: $sortModeRaw) {
                         ForEach(GroupSortMode.allCases) { mode in
                             Text(mode.label).tag(mode.rawValue)
