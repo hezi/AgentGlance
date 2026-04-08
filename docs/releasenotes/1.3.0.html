@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 13px; color: #222; padding: 16px; max-width: 480px; }
+  h2 { font-size: 15px; margin: 16px 0 8px; }
+  h2:first-child { margin-top: 0; }
+  ul { padding-left: 20px; margin: 4px 0; }
+  li { margin: 4px 0; line-height: 1.4; }
+  strong { font-weight: 600; }
+  code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-size: 12px; }
+  @media (prefers-color-scheme: dark) {
+    body { color: #ddd; background: #1a1a1a; }
+    code { background: #333; }
+  }
+</style>
+</head>
+<body>
+
+<h2>What's New</h2>
+<ul>
+  <li><strong>Auto-updates via Sparkle</strong> — checks for updates automatically with a "Check for Updates" menu item</li>
+  <li><strong>Session grouping</strong> — group sessions by project or status with collapsible headers</li>
+  <li><strong>Improved question UX</strong> — one-at-a-time mode with prev/next navigation; tap to expand long text</li>
+  <li><strong>Subtle menu bar indicator</strong> — gentle pulsing dot instead of spinning arc</li>
+  <li><strong>Move to Applications prompt</strong> — one-click move if running outside /Applications</li>
+  <li><strong>Empty state overlay</strong> — helpful view with Settings and Setup when no sessions are active</li>
+  <li><strong>Process liveness checks</strong> — ghost sessions cleaned up automatically</li>
+</ul>
+
+<h2>Bug Fixes</h2>
+<ul>
+  <li><strong>Fixed settings.json overwrite</strong> — atomic write prevents data loss when repairing hooks</li>
+  <li><strong>Fixed hooks verification</strong> — correctly detects installed hooks</li>
+  <li><strong>Fixed pin state lost on settings</strong> — pinned overlay stays pinned</li>
+  <li><strong>Fixed invisible menu bar icon</strong> — visible idle state</li>
+  <li><strong>Fixed Liquid Glass vibrancy</strong> — stays active when panel loses focus</li>
+</ul>
+
+</body>
+</html>

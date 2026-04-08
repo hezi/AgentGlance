@@ -222,7 +222,7 @@ if [ -f "$APPCAST_PATH" ]; then
             <title>Version ${VERSION}</title>
             <sparkle:version>${BUILD}</sparkle:version>
             <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
-            <sparkle:releaseNotesLink>https://github.com/hezi/AgentGlance/releases/tag/v${VERSION}</sparkle:releaseNotesLink>
+            <sparkle:releaseNotesLink>https://agentglance.app/releasenotes/${VERSION}.html</sparkle:releaseNotesLink>
             <pubDate>${PUB_DATE}</pubDate>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure
@@ -240,6 +240,41 @@ ITEMEOF
     info "Updated $APPCAST_PATH with v${VERSION}"
     if [ -z "$ED_SIG" ]; then
         warn "No Sparkle signature — update the edSignature in appcast.xml manually"
+    fi
+
+    # Generate release notes HTML stub for Sparkle
+    NOTES_DIR="docs/releasenotes"
+    NOTES_FILE="$NOTES_DIR/${VERSION}.html"
+    if [ ! -f "$NOTES_FILE" ]; then
+        mkdir -p "$NOTES_DIR"
+        cat > "$NOTES_FILE" << 'NOTESEOF'
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 13px; color: #222; padding: 16px; max-width: 480px; }
+  h2 { font-size: 15px; margin: 16px 0 8px; }
+  h2:first-child { margin-top: 0; }
+  ul { padding-left: 20px; margin: 4px 0; }
+  li { margin: 4px 0; line-height: 1.4; }
+  strong { font-weight: 600; }
+  code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-size: 12px; }
+  @media (prefers-color-scheme: dark) {
+    body { color: #ddd; background: #1a1a1a; }
+    code { background: #333; }
+  }
+</style>
+</head>
+<body>
+<h2>What's New</h2>
+<ul>
+  <li>TODO: Add release notes here</li>
+</ul>
+</body>
+</html>
+NOTESEOF
+        info "Created release notes stub at $NOTES_FILE — edit before pushing!"
     fi
 else
     warn "appcast.xml not found at $APPCAST_PATH — skipping Sparkle appcast update"
@@ -262,13 +297,13 @@ if $UPLOAD; then
 
     info "Release published: https://github.com/hezi/AgentGlance/releases/tag/$TAG"
 
-    # Commit and push the updated appcast
-    if [ -f "$APPCAST_PATH" ] && git diff --quiet "$APPCAST_PATH" 2>/dev/null; [ $? -ne 0 ]; then
-        info "Committing updated appcast.xml..."
-        git add "$APPCAST_PATH"
-        git commit -m "Update appcast.xml for v${VERSION}"
+    # Commit and push the updated appcast + release notes
+    git add "$APPCAST_PATH" "docs/releasenotes/" 2>/dev/null
+    if ! git diff --cached --quiet 2>/dev/null; then
+        info "Committing appcast and release notes..."
+        git commit -m "Update appcast and release notes for v${VERSION}"
         git push
-        info "Appcast pushed to GitHub Pages"
+        info "Appcast and release notes pushed to GitHub Pages"
     fi
 else
     info "Done. Run with --upload to create a GitHub release."
