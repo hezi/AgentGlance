@@ -59,6 +59,7 @@ final class NotchWindow: NSPanel {
 
         positionAtNotch()
         startMouseTracking()
+        enforceActiveVibrancy()
 
         // Reposition when displays are added/removed/rearranged
         NotificationCenter.default.addObserver(
@@ -274,6 +275,33 @@ final class NotchWindow: NSPanel {
 
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
+
+    // MARK: - Liquid Glass Fix
+
+    /// Force all NSVisualEffectViews to stay active (live blur) even when the window isn't key.
+    /// Without this, macOS freezes the blur snapshot when the panel loses focus.
+    func enforceActiveVibrancy() {
+        guard let contentView else { return }
+        // Defer slightly so SwiftUI has time to install the visual effect views
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.setVibrancyActive(in: contentView)
+        }
+    }
+
+    private func setVibrancyActive(in view: NSView) {
+        if let vev = view as? NSVisualEffectView {
+            vev.state = .active
+        }
+        for subview in view.subviews {
+            setVibrancyActive(in: subview)
+        }
+    }
+
+    override func update() {
+        super.update()
+        // Re-enforce after SwiftUI view updates (it can recreate visual effect views)
+        enforceActiveVibrancy()
+    }
 }
 
 // MARK: - NSScreen Extension
