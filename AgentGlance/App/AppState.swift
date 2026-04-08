@@ -2,6 +2,9 @@ import SwiftUI
 import AppKit
 import Combine
 import KeyboardShortcuts
+import os
+
+private let appStateLogger = Logger(subsystem: "app.agentglance", category: "AppState")
 
 @Observable
 @MainActor
@@ -116,6 +119,7 @@ final class AppState {
         registerGlobalHotkey()
         observeAppearanceChanges()
         observeScreenModeChanges()
+        sessionManager.startLivenessChecks()
 
         // First launch: show onboarding and request permissions
         if !UserDefaults.standard.bool(forKey: Constants.UserDefaultsKeys.hasCompletedOnboarding) {
@@ -125,6 +129,9 @@ final class AppState {
                 TerminalActivator.requestAutomationPermission()
             }
         }
+
+        // Prompt to move to /Applications if running from elsewhere
+        checkAppLocation()
     }
 
     private func setupBindings() {
@@ -189,18 +196,19 @@ final class AppState {
         let dir = (NSHomeDirectory() as NSString).appendingPathComponent(".agentglance/bin")
         let path = (dir as NSString).appendingPathComponent("agentglance-bridge")
         let fm = FileManager.default
+        let currentAppPath = Bundle.main.bundlePath
 
         try? fm.createDirectory(atPath: dir, withIntermediateDirectories: true)
 
         let script = """
         #!/bin/bash
         H=/Contents/Helpers/agentglance-bridge
-        for P in "/Applications/AgentGlance.app" "$HOME/Applications/AgentGlance.app"; do
+        for P in "\(currentAppPath)" "/Applications/AgentGlance.app" "$HOME/Applications/AgentGlance.app"; do
             [ -x "${P}${H}" ] && exec "${P}${H}" "$@"
         done
         # App not found — fall back to curl (silent, don't block Claude)
         INPUT=$(cat)
-        EVENT=$(echo "$INPUT" | grep -o '"hook_event_name":"[^"]*"' | head -1 | cut -d'"' -f4)
+        EVENT=$(printf "%s" "$INPUT" | /usr/bin/python3 -c 'import json,sys; print(json.load(sys.stdin).get("hook_event_name",""))' 2>/dev/null)
         PORT=${AG_PORT:-7483}
         if [ "$EVENT" = "PermissionRequest" ]; then
             echo "$INPUT" | curl -s --max-time 120 -X POST -H 'Content-Type: application/json' -d @- "http://localhost:${PORT}/hook/${EVENT}" 2>/dev/null
@@ -211,6 +219,76 @@ final class AppState {
 
         try? script.write(toFile: path, atomically: true, encoding: .utf8)
         chmod(path, 0o755)
+    }
+
+    // MARK: - App Location Check
+
+    private static let hasDeclinedMoveKey = "hasDeclinedMoveToApplications"
+
+    private func checkAppLocation() {
+        #if !DEBUG
+        let appPath = Bundle.main.bundlePath
+        let validLocations = ["/Applications/", NSHomeDirectory() + "/Applications/"]
+
+        guard !validLocations.contains(where: { appPath.hasPrefix($0) }) else { return }
+        guard !UserDefaults.standard.bool(forKey: Self.hasDeclinedMoveKey) else { return }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.showMoveToApplicationsAlert(currentPath: appPath)
+        }
+        #endif
+    }
+
+    private func showMoveToApplicationsAlert(currentPath: String) {
+        let alert = NSAlert()
+        alert.messageText = "Move to Applications?"
+        alert.informativeText = "AgentGlance works best from the Applications folder. This ensures the bridge script can find the app and it appears in Launchpad."
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "Move to Applications")
+        alert.addButton(withTitle: "Not Now")
+        alert.addButton(withTitle: "Don't Ask Again")
+
+        let response = alert.runModal()
+
+        switch response {
+        case .alertFirstButtonReturn:
+            moveToApplications(from: currentPath)
+        case .alertThirdButtonReturn:
+            UserDefaults.standard.set(true, forKey: Self.hasDeclinedMoveKey)
+        default:
+            break
+        }
+    }
+
+    private func moveToApplications(from currentPath: String) {
+        let fm = FileManager.default
+        let appName = (currentPath as NSString).lastPathComponent
+        let destPath = "/Applications/\(appName)"
+
+        do {
+            // Remove existing copy if present
+            if fm.fileExists(atPath: destPath) {
+                try fm.removeItem(atPath: destPath)
+            }
+            try fm.moveItem(atPath: currentPath, toPath: destPath)
+
+            // Relaunch from new location
+            let task = Process()
+            task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+            task.arguments = ["-n", destPath]
+            try task.run()
+
+            // Quit current instance
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                NSApplication.shared.terminate(nil)
+            }
+        } catch {
+            let errorAlert = NSAlert()
+            errorAlert.messageText = "Couldn't move app"
+            errorAlert.informativeText = "Please move AgentGlance.app to /Applications manually.\n\nError: \(error.localizedDescription)"
+            errorAlert.alertStyle = .warning
+            errorAlert.runModal()
+        }
     }
 
     // MARK: - Terminal Focus Detection
@@ -399,6 +477,86 @@ final class AppState {
         }
     }
 
+    // MARK: - Screenshot Scenarios
+
+    /// Tweet 1: Hero shot — multiple sessions showing new UI features
+    func screenshotHero() {
+        // Session 1: Thinking state with user prompt
+        let s1 = TestSession(id: "ss-thinking", cwd: "/Users/demo/checkout-api", name: "checkout-api")
+        sessionManager.handleEvent(HookPayload(session_id: s1.id, cwd: s1.cwd, hook_event_name: "UserPromptSubmit", tool_input: .object(["prompt": .string("Refactor the auth middleware to use refresh tokens")]), permission_mode: "plan", session_name: s1.name))
+
+        // Session 2: Running tool with todo progress
+        let s2 = TestSession(id: "ss-working", cwd: "/Users/demo/dashboard", name: "web")
+        sessionManager.handleEvent(HookPayload(session_id: s2.id, cwd: s2.cwd, hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: .object(["command": .string("npm run test:integration")]), permission_mode: "auto", session_name: s2.name))
+        if let s = sessionManager.sessions[s2.id] {
+            s.todoProgress = TodoProgress(completed: 4, inProgress: 1, open: 2)
+            s.lastUserPrompt = "Add dark mode support to the dashboard"
+            s.toolCount = 18
+        }
+
+        // Session 3: Finished with completion card
+        let s3 = TestSession(id: "ss-ready", cwd: "/Users/demo/mobile-app", name: "mobile-app")
+        sessionManager.handleEvent(HookPayload(session_id: s3.id, cwd: s3.cwd, hook_event_name: "SessionStart", session_name: s3.name))
+        sessionManager.handleEvent(HookPayload(session_id: s3.id, cwd: s3.cwd, hook_event_name: "Stop", last_assistant_message: "Fixed the token refresh flow. Updated middleware.ts to call refreshToken() instead of getToken(), added retry logic for network errors, and updated 3 test files to cover the new edge cases."))
+        if let s = sessionManager.sessions[s3.id] { s.toolCount = 12 }
+    }
+
+    /// Tweet 4: Edit diff in approval card
+    func screenshotEditDiff() {
+        let session = TestSession(id: "ss-diff", cwd: "/Users/demo/checkout-api", name: "checkout-api")
+        let toolInput: JSONValue = .object([
+            "file_path": .string("/Users/demo/checkout-api/src/auth/middleware.ts"),
+            "old_string": .string("const token = getToken()\nif (!token) {\n    return res.status(401).json({ error: \"unauthorized\" })\n}"),
+            "new_string": .string("const token = await refreshToken()\nif (!token) {\n    throw new AuthError(\"token_expired\", { retry: true })\n}"),
+        ])
+        sessionManager.handleEvent(HookPayload(session_id: session.id, cwd: session.cwd, hook_event_name: "PermissionRequest", tool_name: "Edit", tool_input: toolInput, permission_mode: "plan", session_name: session.name))
+        hookServer.addMockPending(sessionId: session.id, toolName: "Edit", toolInput: toolInput, toolSummary: ".../auth/middleware.ts")
+    }
+
+    /// Tweet 5: Three spinner states side by side (run sequentially, screenshot each)
+    func screenshotThinkingState() {
+        let session = TestSession(id: "ss-states", cwd: "/Users/demo/checkout-api", name: "checkout-api")
+        sessionManager.handleEvent(HookPayload(session_id: session.id, cwd: session.cwd, hook_event_name: "UserPromptSubmit", tool_input: .object(["prompt": .string("Add rate limiting to the API endpoints")]), session_name: session.name))
+        // Now showing cyan "Thinking..." spinner
+    }
+
+    func screenshotRunningState() {
+        if let s = sessionManager.sessions["ss-states"] {
+            s.workingDetail = .runningTool
+            s.currentTool = "Bash"
+            s.pendingToolSummary = "npm run test"
+            s.toolCount = 5
+        }
+        // Now showing green "Running Bash..." spinner
+    }
+
+    func screenshotCompactingState() {
+        if let s = sessionManager.sessions["ss-states"] {
+            s.workingDetail = .compacting
+            s.currentTool = nil
+            s.pendingToolSummary = nil
+        }
+        // Now showing orange "Compacting..." spinner
+    }
+
+    /// Tweet 6: Completion card + todo progress
+    func screenshotCompletionAndTodos() {
+        // Session with todo progress
+        let s1 = TestSession(id: "ss-todo", cwd: "/Users/demo/dashboard", name: "web")
+        sessionManager.handleEvent(HookPayload(session_id: s1.id, cwd: s1.cwd, hook_event_name: "PreToolUse", tool_name: "Edit", tool_input: .object(["file_path": .string("src/theme.css")]), permission_mode: "auto", session_name: s1.name))
+        if let s = sessionManager.sessions[s1.id] {
+            s.todoProgress = TodoProgress(completed: 3, inProgress: 1, open: 2)
+            s.lastUserPrompt = "Add dark mode to all components"
+            s.toolCount = 14
+        }
+
+        // Session with completion card
+        let s2 = TestSession(id: "ss-complete", cwd: "/Users/demo/checkout-api", name: "checkout-api")
+        sessionManager.handleEvent(HookPayload(session_id: s2.id, cwd: s2.cwd, hook_event_name: "SessionStart", session_name: s2.name))
+        sessionManager.handleEvent(HookPayload(session_id: s2.id, cwd: s2.cwd, hook_event_name: "Stop", last_assistant_message: "Added dark mode support.\n\n• Created CSS custom properties for light/dark themes\n• Added prefers-color-scheme media query\n• Updated 3 components to use theme variables\n• Added toggle in settings panel"))
+        if let s = sessionManager.sessions[s2.id] { s.toolCount = 9 }
+    }
+
     // MARK: - Sound
 
     private func playAlertSound() {
@@ -421,7 +579,7 @@ final class AppState {
             backing: .buffered,
             defer: false
         )
-        window.title = "Setup Claude Code Hooks"
+        window.title = "Setup Integrations"
         window.isReleasedWhenClosed = false
         window.appearance = AppearanceHelper.nsAppearance()
         window.contentView = NSHostingView(rootView: view)
