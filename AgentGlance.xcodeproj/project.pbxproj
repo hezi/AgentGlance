@@ -6,6 +6,20 @@
 	objectVersion = 56;
 	objects = {
 
+/* Begin PBXAggregateTarget section */
+		T10002 /* Generate Icon */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = C10005 /* Build configuration list for PBXAggregateTarget "Generate Icon" */;
+			buildPhases = (
+				SP1001 /* Run Script — generate icon */,
+			);
+			dependencies = (
+			);
+			name = "Generate Icon";
+			productName = "Generate Icon";
+		};
+/* End PBXAggregateTarget section */
+
 /* Begin PBXBuildFile section */
 		A10001 /* AgentGlanceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10001 /* AgentGlanceApp.swift */; };
 		A10002 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002 /* AppState.swift */; };
@@ -26,10 +40,12 @@
 		A10017 /* ProcessScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10019 /* ProcessScanner.swift */; };
 		A10018 /* TerminalActivator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10020 /* TerminalActivator.swift */; };
 		A10019 /* AppIconViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10021 /* AppIconViews.swift */; };
+		A10021 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = PD0001 /* KeyboardShortcuts */; };
 		A10022 /* CompletionCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10022 /* CompletionCardView.swift */; };
 		A10023 /* EditDiffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10023 /* EditDiffView.swift */; };
 		A10024 /* HookConfigWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10024 /* HookConfigWatcher.swift */; };
-		A10021 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = PD0001 /* KeyboardShortcuts */; };
+		A10025 /* SessionGrouping.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10025 /* SessionGrouping.swift */; };
+		D57154A02F86BA370083195F /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = D571549F2F86BA370083195F /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -57,6 +73,7 @@
 		B10022 /* CompletionCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletionCardView.swift; sourceTree = "<group>"; };
 		B10023 /* EditDiffView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditDiffView.swift; sourceTree = "<group>"; };
 		B10024 /* HookConfigWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HookConfigWatcher.swift; sourceTree = "<group>"; };
+		B10025 /* SessionGrouping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionGrouping.swift; sourceTree = "<group>"; };
 		P10001 /* AgentGlance.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AgentGlance.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -66,6 +83,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10021 /* KeyboardShortcuts in Frameworks */,
+				D57154A02F86BA370083195F /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -154,6 +172,7 @@
 			children = (
 				B10014 /* NotchWindow.swift */,
 				B10015 /* Constants.swift */,
+				B10025 /* SessionGrouping.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -194,6 +213,7 @@
 			name = AgentGlance;
 			packageProductDependencies = (
 				PD0001 /* KeyboardShortcuts */,
+				D571549F2F86BA370083195F /* Sparkle */,
 			);
 			productName = AgentGlance;
 			productReference = P10001 /* AgentGlance.app */;
@@ -201,19 +221,55 @@
 		};
 /* End PBXNativeTarget section */
 
-/* Begin PBXAggregateTarget section */
-		T10002 /* Generate Icon */ = {
-			isa = PBXAggregateTarget;
-			buildConfigurationList = C10005 /* Build configuration list for PBXAggregateTarget "Generate Icon" */;
-			buildPhases = (
-				SP1001 /* Run Script — generate icon */,
+/* Begin PBXProject section */
+		PR1001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1540;
+				LastUpgradeCheck = 1540;
+				TargetAttributes = {
+					T10001 = {
+						CreatedOnToolsVersion = 15.4;
+					};
+					T10002 = {
+						CreatedOnToolsVersion = 15.4;
+					};
+				};
+			};
+			buildConfigurationList = C10001 /* Build configuration list for PBXProject "AgentGlance" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
 			);
-			dependencies = (
+			mainGroup = G10001;
+			packageReferences = (
+				PKG0001 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
+				D571549E2F86BA370083195F /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
-			name = "Generate Icon";
-			productName = "Generate Icon";
+			productRefGroup = G10009 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				T10001 /* AgentGlance */,
+				T10002 /* Generate Icon */,
+			);
 		};
-/* End PBXAggregateTarget section */
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		R10001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10016 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
 		SP1001 /* Run Script — generate icon */ = {
@@ -251,55 +307,6 @@
 		};
 /* End PBXShellScriptBuildPhase section */
 
-/* Begin PBXProject section */
-		PR1001 /* Project object */ = {
-			isa = PBXProject;
-			attributes = {
-				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1540;
-				LastUpgradeCheck = 1540;
-				TargetAttributes = {
-					T10001 = {
-						CreatedOnToolsVersion = 15.4;
-					};
-					T10002 = {
-						CreatedOnToolsVersion = 15.4;
-					};
-				};
-			};
-			buildConfigurationList = C10001 /* Build configuration list for PBXProject "AgentGlance" */;
-			compatibilityVersion = "Xcode 14.0";
-			developmentRegion = en;
-			hasScannedForEncodings = 0;
-			knownRegions = (
-				en,
-				Base,
-			);
-			mainGroup = G10001;
-			packageReferences = (
-				PKG0001 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
-			);
-			productRefGroup = G10009 /* Products */;
-			projectDirPath = "";
-			projectRoot = "";
-			targets = (
-				T10001 /* AgentGlance */,
-				T10002 /* Generate Icon */,
-			);
-		};
-/* End PBXProject section */
-
-/* Begin PBXResourcesBuildPhase section */
-		R10001 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				A10016 /* Assets.xcassets in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXResourcesBuildPhase section */
-
 /* Begin PBXSourcesBuildPhase section */
 		S10001 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -326,6 +333,7 @@
 				A10022 /* CompletionCardView.swift in Sources */,
 				A10023 /* EditDiffView.swift in Sources */,
 				A10024 /* HookConfigWatcher.swift in Sources */,
+				A10025 /* SessionGrouping.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -375,7 +383,7 @@
 				CURRENT_PROJECT_VERSION = 3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AgentGlance/Resources/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "AgentGlance";
+				INFOPLIST_KEY_CFBundleDisplayName = AgentGlance;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -387,6 +395,14 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C10D03 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
 			};
 			name = Debug;
 		};
@@ -425,7 +441,7 @@
 				CURRENT_PROJECT_VERSION = 3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AgentGlance/Resources/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "AgentGlance";
+				INFOPLIST_KEY_CFBundleDisplayName = AgentGlance;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -439,14 +455,6 @@
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
-		};
-		C10D03 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				SDKROOT = macosx;
-			};
-			name = Debug;
 		};
 		C10R03 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -477,7 +485,6 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-/* End XCConfigurationList section */
 		C10005 /* Build configuration list for PBXAggregateTarget "Generate Icon" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -487,7 +494,17 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+/* End XCConfigurationList section */
+
 /* Begin XCRemoteSwiftPackageReference section */
+		D571549E2F86BA370083195F /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.9.1;
+			};
+		};
 		PKG0001 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts";
@@ -499,6 +516,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		D571549F2F86BA370083195F /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D571549E2F86BA370083195F /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
 		PD0001 /* KeyboardShortcuts */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = PKG0001 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;

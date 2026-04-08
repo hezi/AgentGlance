@@ -28,6 +28,38 @@ enum Constants {
         static let hotkeyKey = "hotkeyKey"
         static let keyboardNavMode = "keyboardNavMode"
         static let suppressExpansionWhenInTerminal = "suppressExpansionWhenInTerminal"
+        static let sessionGroupMode = "sessionGroupMode"
+        static let groupSortMode = "groupSortMode"
+    }
+}
+
+enum SessionGroupMode: String, CaseIterable, Identifiable {
+    case none
+    case project
+    case status
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .none: "None"
+        case .project: "Project"
+        case .status: "Status"
+        }
+    }
+}
+
+enum GroupSortMode: String, CaseIterable, Identifiable {
+    case alphabetical
+    case lastUpdated
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .alphabetical: "Alphabetical"
+        case .lastUpdated: "Last Updated"
+        }
     }
 }
 
