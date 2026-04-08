@@ -1,7 +1,28 @@
 import SwiftUI
+import Sparkle
 
 struct MenuBarView: View {
     @Bindable var appState: AppState
+    var updater: SPUUpdater? = nil
+    @AppStorage(Constants.UserDefaultsKeys.sessionGroupMode) private var groupModeRaw = SessionGroupMode.none.rawValue
+    @AppStorage(Constants.UserDefaultsKeys.groupSortMode) private var sortModeRaw = GroupSortMode.lastUpdated.rawValue
+    @State private var collapsedGroups: Set<String> = []
+
+    private var groupMode: SessionGroupMode {
+        SessionGroupMode(rawValue: groupModeRaw) ?? .none
+    }
+
+    private var sortMode: GroupSortMode {
+        GroupSortMode(rawValue: sortModeRaw) ?? .lastUpdated
+    }
+
+    private var sessionGroups: [SessionGroup] {
+        SessionGrouper.group(
+            sessions: appState.sessionManager.allSessions,
+            by: groupMode,
+            sortedBy: sortMode
+        )
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -10,16 +31,18 @@ struct MenuBarView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding()
-            } else {
+            } else if groupMode == .none {
                 ForEach(appState.sessionManager.allSessions, id: \.id) { session in
-                    if session.state == .awaitingApproval && session.currentTool == "ExitPlanMode" {
-                        planReviewItem(session)
-                    } else if session.state == .awaitingApproval && session.currentTool == "AskUserQuestion" {
-                        questionItem(session)
-                    } else if session.state == .awaitingApproval {
-                        approvalItem(session)
-                    } else {
-                        sessionRow(session)
+                    sessionItem(session)
+                    Divider()
+                }
+            } else {
+                ForEach(sessionGroups) { group in
+                    groupHeader(group)
+                    if !collapsedGroups.contains(group.id) {
+                        ForEach(group.sessions, id: \.id) { session in
+                            sessionItem(session)
+                        }
                     }
                     Divider()
                 }
@@ -51,13 +74,23 @@ struct MenuBarView: View {
                     Button("Complete") { appState.sendTestEvent("SessionEnd") }
                     Divider()
                     Button("New Session") { appState.sendTestEvent("SessionStart") }
+                    Divider()
+                    Menu("Screenshots") {
+                        Button("Hero (multi-session)") { appState.screenshotHero() }
+                        Button("Edit Diff Approval") { appState.screenshotEditDiff() }
+                        Button("Completion + Todos") { appState.screenshotCompletionAndTodos() }
+                        Divider()
+                        Button("State: Thinking") { appState.screenshotThinkingState() }
+                        Button("State: Running") { appState.screenshotRunningState() }
+                        Button("State: Compacting") { appState.screenshotCompactingState() }
+                    }
                 }
                 .menuItemStyle()
 
                 Divider().padding(.vertical, 2)
                 #endif
 
-                menuItem("Setup Hooks...", icon: "link") {
+                menuItem("Setup Integrations...", icon: "link") {
                     appState.showOnboarding()
                 }
                 menuItem("Settings...", icon: "gearshape", shortcut: "⌘,") {
@@ -66,6 +99,9 @@ struct MenuBarView: View {
 
                 Divider().padding(.vertical, 2)
 
+                menuItem("Check for Updates...", icon: "arrow.triangle.2.circlepath") {
+                    updater?.checkForUpdates()
+                }
                 menuItem("Report Issue...", icon: "ladybug") {
                     reportIssue()
                 }
@@ -78,6 +114,59 @@ struct MenuBarView: View {
             }
         }
         .frame(width: 300)
+    }
+
+    // MARK: - Session Item Dispatch
+
+    @ViewBuilder
+    private func sessionItem(_ session: Session) -> some View {
+        if session.state == .awaitingApproval && session.currentTool == "ExitPlanMode" {
+            planReviewItem(session)
+        } else if session.state == .awaitingApproval && session.currentTool == "AskUserQuestion" {
+            questionItem(session)
+        } else if session.state == .awaitingApproval {
+            approvalItem(session)
+        } else {
+            sessionRow(session)
+        }
+    }
+
+    // MARK: - Group Header
+
+    private func groupHeader(_ group: SessionGroup) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                if collapsedGroups.contains(group.id) {
+                    collapsedGroups.remove(group.id)
+                } else {
+                    collapsedGroups.insert(group.id)
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .rotationEffect(.degrees(collapsedGroups.contains(group.id) ? 0 : 90))
+
+                Text(group.title)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.primary)
+
+                Text("\(group.sessions.count)")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(Capsule().fill(.secondary.opacity(0.15)))
+
+                Spacer()
+            }
+            .contentShape(Rectangle())
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Session Row (clickable → navigate to terminal)

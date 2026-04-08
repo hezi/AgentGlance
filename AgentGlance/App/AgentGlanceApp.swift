@@ -1,12 +1,14 @@
 import SwiftUI
+import Sparkle
 
 @main
 struct AgentGlanceApp: App {
     @State private var appState = AppState()
+    private let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
 
     var body: some Scene {
         MenuBarExtra {
-            MenuBarView(appState: appState)
+            MenuBarView(appState: appState, updater: updaterController.updater)
         } label: {
             menuBarLabel
         }
@@ -19,7 +21,7 @@ struct AgentGlanceApp: App {
 
         switch state {
         case .working:
-            MenuBarSpinner()
+            MenuBarPulse()
         case .awaitingApproval:
             Image(systemName: "circle.fill")
                 .symbolRenderingMode(.palette)
@@ -44,44 +46,33 @@ struct AgentGlanceApp: App {
     }
 }
 
-/// Renders the same arc spinner used in the notch as a rasterized NSImage for the menu bar.
-/// MenuBarExtra labels only display Image/Text, so we render SpinnerView frames manually.
-private struct MenuBarSpinner: View {
-    @State private var frame: Int = 0
-    private let frameCount = 12
+/// Gentle pulsing dot for the menu bar working state.
+/// Much less distracting than the spinning arc while still signaling activity.
+private struct MenuBarPulse: View {
+    @State private var bright = false
     private let size: CGFloat = 18
 
     var body: some View {
-        Image(nsImage: renderFrame(angle: Double(frame) * (360.0 / Double(frameCount))))
+        Image(nsImage: renderDot(opacity: bright ? 1.0 : 0.35))
             .task {
                 while !Task.isCancelled {
-                    try? await Task.sleep(for: .milliseconds(80))
-                    frame = (frame + 1) % frameCount
+                    try? await Task.sleep(for: .milliseconds(800))
+                    bright.toggle()
                 }
             }
     }
 
-    private func renderFrame(angle: Double) -> NSImage {
+    private func renderDot(opacity: Double) -> NSImage {
         let img = NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in
             guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
             let center = CGPoint(x: rect.midX, y: rect.midY)
-            let radius = (min(rect.width, rect.height) - 2) / 2
+            let radius: CGFloat = 4.5
 
-            ctx.translateBy(x: center.x, y: center.y)
-            ctx.rotate(by: -angle * .pi / 180)
-            ctx.translateBy(x: -center.x, y: -center.y)
-
-            let path = CGMutablePath()
-            // 70% arc, matching SpinnerView's .trim(from: 0, to: 0.7)
-            path.addArc(center: center, radius: radius,
-                        startAngle: 0, endAngle: .pi * 2 * 0.7,
-                        clockwise: false)
-
-            ctx.setStrokeColor(NSColor.systemGreen.cgColor)
-            ctx.setLineWidth(1.5)
-            ctx.setLineCap(.round)
-            ctx.addPath(path)
-            ctx.strokePath()
+            ctx.setFillColor(NSColor.systemGreen.withAlphaComponent(opacity).cgColor)
+            ctx.fillEllipse(in: CGRect(
+                x: center.x - radius, y: center.y - radius,
+                width: radius * 2, height: radius * 2
+            ))
             return true
         }
         img.isTemplate = false

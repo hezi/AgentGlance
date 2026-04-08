@@ -14,11 +14,40 @@ struct NotchOverlay: View {
     @AppStorage(Constants.UserDefaultsKeys.showAllApprovals) private var showAllApprovals = false
     @AppStorage(Constants.UserDefaultsKeys.expandedWidth) private var expandedWidth = 340.0
     @AppStorage(Constants.UserDefaultsKeys.keyboardNavMode) private var keyboardNavModeRaw = KeyboardNavMode.arrows.rawValue
+    @AppStorage(Constants.UserDefaultsKeys.sessionGroupMode) private var groupModeRaw = SessionGroupMode.none.rawValue
+    @AppStorage(Constants.UserDefaultsKeys.groupSortMode) private var sortModeRaw = GroupSortMode.lastUpdated.rawValue
+    @State private var collapsedGroups: Set<String> = []
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var geometry: NotchGeometry
 
     private var keyboardNavMode: KeyboardNavMode {
         KeyboardNavMode(rawValue: keyboardNavModeRaw) ?? .arrows
+    }
+
+    private var groupMode: SessionGroupMode {
+        SessionGroupMode(rawValue: groupModeRaw) ?? .none
+    }
+
+    private var sortMode: GroupSortMode {
+        GroupSortMode(rawValue: sortModeRaw) ?? .lastUpdated
+    }
+
+    private var sessionGroups: [SessionGroup] {
+        SessionGrouper.group(
+            sessions: sessionManager.activeSessions,
+            by: groupMode,
+            sortedBy: sortMode
+        )
+    }
+
+    /// Flat list of sessions visible after collapsing, used for keyboard nav indexing
+    private var visibleSessions: [Session] {
+        if groupMode == .none {
+            return sessionManager.activeSessions
+        }
+        return sessionGroups.flatMap { group in
+            collapsedGroups.contains(group.id) ? [] : group.sessions
+        }
     }
 
     /// Adaptive foreground color — white in dark mode, black in light mode
@@ -92,9 +121,14 @@ struct NotchOverlay: View {
         VStack(spacing: 0) {
             collapsedBar
 
-            if isExpanded && !sessions.isEmpty {
-                expandedDetail
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+            if isExpanded {
+                if sessions.isEmpty {
+                    emptyStateView
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                } else {
+                    expandedDetail
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
             }
         }
         .frame(width: isExpanded ? expandedWidth : (fitToText ? nil : notchWidth))
@@ -109,14 +143,7 @@ struct NotchOverlay: View {
         ))
         .contentShape(Rectangle())
         .onHover { hovering in
-            guard !geometry.isDragging, !sessions.isEmpty else {
-                if sessions.isEmpty {
-                    isExpanded = false
-                    isAutoExpanded = false
-                    isPinned = false
-                }
-                return
-            }
+            guard !geometry.isDragging else { return }
             if hovering {
                 isExpanded = true
                 isAutoExpanded = false
@@ -175,10 +202,10 @@ struct NotchOverlay: View {
                 } else {
                     Image(systemName: "terminal")
                         .font(scaledFont(size: fontScale.detailSize))
-                        .foregroundStyle(fg.opacity(0.35))
+                        .foregroundStyle(fg.opacity(0.5))
                     Text("AgentGlance")
                         .font(scaledFont(size: fontScale.bodySize, weight: .medium))
-                        .foregroundStyle(fg.opacity(0.35))
+                        .foregroundStyle(fg.opacity(0.5))
                 }
             }
 
@@ -200,7 +227,6 @@ struct NotchOverlay: View {
                     Button {
                         isExpanded = false
                         isAutoExpanded = false
-                        isPinned = false
                         appState.showSettings()
                     } label: {
                         Image(systemName: "gearshape")
@@ -217,87 +243,71 @@ struct NotchOverlay: View {
 
     // MARK: - Expanded detail
 
+    private var emptyStateView: some View {
+        VStack(spacing: 8) {
+            Text("No active sessions")
+                .font(scaledFont(size: fontScale.bodySize, weight: .medium))
+                .foregroundStyle(fg.opacity(0.5))
+
+            Text("Start a coding agent to see it here")
+                .font(scaledFont(size: fontScale.detailSize))
+                .foregroundStyle(fg.opacity(0.3))
+
+            HStack(spacing: 12) {
+                Button {
+                    appState.showSettings()
+                } label: {
+                    Label("Settings", systemImage: "gearshape")
+                        .font(scaledFont(size: fontScale.detailSize))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(fg.opacity(0.4))
+
+                Button {
+                    appState.showOnboarding()
+                } label: {
+                    Label("Setup", systemImage: "link")
+                        .font(scaledFont(size: fontScale.detailSize))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(fg.opacity(0.4))
+            }
+            .padding(.top, 4)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 12)
+    }
+
     private var expandedDetail: some View {
-        VStack(spacing: 4) {
-            ForEach(Array(sessions.enumerated()), id: \.element.id) { index, session in
-                Group {
-                    if session.state == .awaitingApproval && session.currentTool == "AskUserQuestion" {
-                        questionRow(session)
-                    } else if session.state == .awaitingApproval && session.currentTool == "ExitPlanMode" {
-                        planReviewRow(session)
-                    } else if session.state == .awaitingApproval {
-                        if showAllApprovals {
-                            let queue = hookServer.pendingDecisions[session.id] ?? []
-                            ForEach(Array(queue.enumerated()), id: \.offset) { qIdx, pending in
-                                approvalRowForPending(session: session, pending: pending, index: qIdx)
-                            }
-                            if queue.isEmpty {
-                                approvalRow(session)
-                            }
-                        } else {
-                            approvalRow(session)
-                        }
-                    } else {
-                        sessionRow(session)
-                    }
+        let visible = visibleSessions
+        return VStack(spacing: 4) {
+            if groupMode == .none {
+                ForEach(Array(visible.enumerated()), id: \.element.id) { index, session in
+                    sessionItemView(session)
+                        .modifier(KeyboardNavOverlay(
+                            index: index,
+                            appState: appState,
+                            keyboardNavMode: keyboardNavMode,
+                            badgeSize: fontScale.badgeSize,
+                            fg: fg,
+                            bg: bg
+                        ))
                 }
-                .overlay(
-                    appState.focusedRowIndex == index && appState.isKeyboardNavActive
-                        ? RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .strokeBorder(.blue.opacity(0.6), lineWidth: 1.5)
-                        : nil
-                )
-                .overlay(alignment: .leading) {
-                    // Number badge for row selection (number-key mode, no row selected yet)
-                    if appState.isKeyboardNavActive && keyboardNavMode == .numbers && appState.focusedRowIndex == nil {
-                        Text("\(index + 1)")
-                            .font(.system(size: 10, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
-                            .frame(width: 18, height: 18)
-                            .background(Circle().fill(.blue.opacity(0.7)))
-                            .offset(x: -6)
-                    }
-                }
-                .overlay(alignment: .bottom) {
-                    // Action bar when this row is focused (both modes)
-                    if appState.isKeyboardNavActive && appState.focusedRowIndex == index {
-                        let actions = appState.actionsForFocusedRow()
-                        if !actions.isEmpty && (keyboardNavMode == .numbers || appState.focusedActionIndex != nil) {
-                            HStack(spacing: 6) {
-                                ForEach(Array(actions.enumerated()), id: \.offset) { aIdx, action in
-                                    let isFocused = keyboardNavMode == .arrows && appState.focusedActionIndex == aIdx
-                                    HStack(spacing: 3) {
-                                        if keyboardNavMode == .numbers {
-                                            Text("\(aIdx + 1)")
-                                                .font(.system(size: 9, weight: .bold, design: .rounded))
-                                                .foregroundStyle(.white)
-                                                .frame(width: 16, height: 16)
-                                                .background(Circle().fill(.blue.opacity(0.7)))
-                                        }
-                                        if let icon = action.icon {
-                                            Image(systemName: icon)
-                                                .font(.system(size: 9))
-                                        }
-                                        Text(action.label)
-                                            .font(scaledFont(size: fontScale.badgeSize, weight: isFocused ? .bold : .medium))
-                                    }
-                                    .foregroundStyle(isFocused ? .white : fg.opacity(0.7))
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 3)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                            .fill(isFocused ? .blue.opacity(0.7) : .clear)
-                                    )
-                                }
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(
-                                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                    .fill(bg.opacity(0.95))
-                                    .shadow(color: .black.opacity(0.2), radius: 4)
-                            )
-                            .offset(y: 24)
+            } else {
+                ForEach(sessionGroups) { group in
+                    notchGroupHeader(group)
+                    if !collapsedGroups.contains(group.id) {
+                        ForEach(group.sessions, id: \.id) { session in
+                            let index = visible.firstIndex(where: { $0.id == session.id })
+                            sessionItemView(session)
+                                .modifier(KeyboardNavOverlay(
+                                    index: index,
+                                    appState: appState,
+                                    keyboardNavMode: keyboardNavMode,
+                                    badgeSize: fontScale.badgeSize,
+                                    fg: fg,
+                                    bg: bg
+                                ))
                         }
                     }
                 }
@@ -306,6 +316,65 @@ struct NotchOverlay: View {
         .padding(.horizontal, 10)
         .padding(.top, 2)
         .padding(.bottom, 10)
+    }
+
+    @ViewBuilder
+    private func sessionItemView(_ session: Session) -> some View {
+        if session.state == .awaitingApproval && session.currentTool == "AskUserQuestion" {
+            questionRow(session)
+        } else if session.state == .awaitingApproval && session.currentTool == "ExitPlanMode" {
+            planReviewRow(session)
+        } else if session.state == .awaitingApproval {
+            if showAllApprovals {
+                let queue = hookServer.pendingDecisions[session.id] ?? []
+                ForEach(Array(queue.enumerated()), id: \.offset) { qIdx, pending in
+                    approvalRowForPending(session: session, pending: pending, index: qIdx)
+                }
+                if queue.isEmpty {
+                    approvalRow(session)
+                }
+            } else {
+                approvalRow(session)
+            }
+        } else {
+            sessionRow(session)
+        }
+    }
+
+    private func notchGroupHeader(_ group: SessionGroup) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                if collapsedGroups.contains(group.id) {
+                    collapsedGroups.remove(group.id)
+                } else {
+                    collapsedGroups.insert(group.id)
+                }
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(fg.opacity(0.4))
+                    .rotationEffect(.degrees(collapsedGroups.contains(group.id) ? 0 : 90))
+
+                Text(group.title)
+                    .font(scaledFont(size: fontScale.detailSize, weight: .semibold))
+                    .foregroundStyle(fg.opacity(0.6))
+
+                Text("\(group.sessions.count)")
+                    .font(scaledFont(size: fontScale.badgeSize, weight: .medium))
+                    .foregroundStyle(fg.opacity(0.35))
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 1)
+                    .background(Capsule().fill(fg.opacity(0.08)))
+
+                Spacer()
+            }
+            .contentShape(Rectangle())
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+        }
+        .buttonStyle(.plain)
     }
 
     private func sessionRow(_ session: Session) -> some View {
@@ -1025,6 +1094,79 @@ struct NotchOverlay: View {
     }
 }
 
+// MARK: - Keyboard Navigation Overlay
+
+private struct KeyboardNavOverlay: ViewModifier {
+    let index: Int?
+    let appState: AppState
+    let keyboardNavMode: KeyboardNavMode
+    let badgeSize: CGFloat
+    let fg: Color
+    let bg: Color
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                index != nil && appState.focusedRowIndex == index && appState.isKeyboardNavActive
+                    ? RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(.blue.opacity(0.6), lineWidth: 1.5)
+                    : nil
+            )
+            .overlay(alignment: .leading) {
+                if let index, appState.isKeyboardNavActive && keyboardNavMode == .numbers && appState.focusedRowIndex == nil {
+                    Text("\(index + 1)")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .frame(width: 18, height: 18)
+                        .background(Circle().fill(.blue.opacity(0.7)))
+                        .offset(x: -6)
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if let index, appState.isKeyboardNavActive && appState.focusedRowIndex == index {
+                    let actions = appState.actionsForFocusedRow()
+                    if !actions.isEmpty && (keyboardNavMode == .numbers || appState.focusedActionIndex != nil) {
+                        HStack(spacing: 6) {
+                            ForEach(Array(actions.enumerated()), id: \.offset) { aIdx, action in
+                                let isFocused = keyboardNavMode == .arrows && appState.focusedActionIndex == aIdx
+                                HStack(spacing: 3) {
+                                    if keyboardNavMode == .numbers {
+                                        Text("\(aIdx + 1)")
+                                            .font(.system(size: 9, weight: .bold, design: .rounded))
+                                            .foregroundStyle(.white)
+                                            .frame(width: 16, height: 16)
+                                            .background(Circle().fill(.blue.opacity(0.7)))
+                                    }
+                                    if let icon = action.icon {
+                                        Image(systemName: icon)
+                                            .font(.system(size: 9))
+                                    }
+                                    Text(action.label)
+                                        .font(.system(size: badgeSize, weight: isFocused ? .bold : .medium))
+                                }
+                                .foregroundStyle(isFocused ? .white : fg.opacity(0.7))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                        .fill(isFocused ? .blue.opacity(0.7) : .clear)
+                                )
+                            }
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(bg.opacity(0.95))
+                                .shadow(color: .black.opacity(0.2), radius: 4)
+                        )
+                        .offset(y: 24)
+                    }
+                }
+            }
+    }
+}
+
 // MARK: - Notch Background (opaque black or Liquid Glass)
 
 private struct NotchBackgroundModifier: ViewModifier {
@@ -1080,6 +1222,8 @@ struct QuestionRowView: View {
     let fg: Color
 
     @State private var selections: [String: Set<String>] = [:]
+    @State private var currentQuestionIndex: Int = 0
+    @State private var showFullQuestion: Bool = false
 
     private var pending: PendingDecision? {
         hookServer.nextPending(for: session.id)
@@ -1087,6 +1231,11 @@ struct QuestionRowView: View {
 
     private var questions: [ParsedQuestion] {
         pending?.questions ?? []
+    }
+
+    /// Whether to show one question at a time (like the TUI)
+    private var showOneAtATime: Bool {
+        questions.count > 1
     }
 
     private func font(size: CGFloat, weight: Font.Weight = .regular, design: Font.Design = .default) -> Font {
@@ -1131,11 +1280,48 @@ struct QuestionRowView: View {
 
             // Questions with selectable options
             if !questions.isEmpty {
-                ForEach(questions) { q in
+                let displayQuestions = showOneAtATime
+                    ? [questions[min(currentQuestionIndex, questions.count - 1)]]
+                    : questions
+
+                if showOneAtATime {
+                    HStack(spacing: 4) {
+                        Text("Question \(currentQuestionIndex + 1) of \(questions.count)")
+                            .font(font(size: fontScale.badgeSize, weight: .medium))
+                            .foregroundStyle(fg.opacity(0.4))
+                        Spacer()
+                        if currentQuestionIndex > 0 {
+                            Button {
+                                currentQuestionIndex -= 1
+                            } label: {
+                                Image(systemName: "chevron.left")
+                                    .font(font(size: fontScale.badgeSize, weight: .semibold))
+                                    .foregroundStyle(fg.opacity(0.4))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        if currentQuestionIndex < questions.count - 1 {
+                            Button {
+                                currentQuestionIndex += 1
+                            } label: {
+                                Image(systemName: "chevron.right")
+                                    .font(font(size: fontScale.badgeSize, weight: .semibold))
+                                    .foregroundStyle(fg.opacity(0.4))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 6)
+                }
+
+                ForEach(displayQuestions) { q in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(q.questionText)
                             .font(font(size: fontScale.monoSize, weight: .medium))
                             .foregroundStyle(fg.opacity(0.85))
+                            .fixedSize(horizontal: false, vertical: !showFullQuestion)
+                            .lineLimit(showFullQuestion ? nil : 6)
+                            .onTapGesture { showFullQuestion.toggle() }
 
                         // Option chips
                         FlowLayout(spacing: 4) {
@@ -1143,6 +1329,12 @@ struct QuestionRowView: View {
                                 let isSelected = selections[q.questionText, default: []].contains(option)
                                 Button {
                                     toggleSelection(question: q, option: option)
+                                    // Auto-advance to next question after selection (single-select only)
+                                    if showOneAtATime && !q.multiSelect && currentQuestionIndex < questions.count - 1 {
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                            currentQuestionIndex += 1
+                                        }
+                                    }
                                 } label: {
                                     Text(option)
                                         .font(font(size: fontScale.detailSize, weight: isSelected ? .semibold : .regular))
@@ -1175,7 +1367,8 @@ struct QuestionRowView: View {
                 Text(summary)
                     .font(font(size: fontScale.monoSize))
                     .foregroundStyle(fg.opacity(0.85))
-                    .lineLimit(4)
+                    .lineLimit(showFullQuestion ? nil : 6)
+                    .onTapGesture { showFullQuestion.toggle() }
                     .padding(.horizontal, 6)
                     .padding(.vertical, 4)
                     .frame(maxWidth: .infinity, alignment: .leading)

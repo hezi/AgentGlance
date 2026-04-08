@@ -78,6 +78,8 @@ private struct GeneralPane: View {
     @AppStorage(Constants.UserDefaultsKeys.screenSelectionMode) private var screenMode = "mainScreen"
     @AppStorage(Constants.UserDefaultsKeys.selectedScreenID) private var selectedScreenID = ""
     @AppStorage(Constants.UserDefaultsKeys.keyboardNavMode) private var navMode = KeyboardNavMode.arrows.rawValue
+    @AppStorage(Constants.UserDefaultsKeys.sessionGroupMode) private var groupModeRaw = SessionGroupMode.none.rawValue
+    @AppStorage(Constants.UserDefaultsKeys.groupSortMode) private var sortModeRaw = GroupSortMode.lastUpdated.rawValue
     @State private var launchAtLogin = false
 
     var body: some View {
@@ -106,8 +108,24 @@ private struct GeneralPane: View {
                 .controlSize(.small)
             }
 
+            Section("Session Grouping") {
+                Picker("Group by", selection: $groupModeRaw) {
+                    ForEach(SessionGroupMode.allCases) { mode in
+                        Text(mode.label).tag(mode.rawValue)
+                    }
+                }
+
+                if SessionGroupMode(rawValue: groupModeRaw) != .none {
+                    Picker("Sort groups", selection: $sortModeRaw) {
+                        ForEach(GroupSortMode.allCases) { mode in
+                            Text(mode.label).tag(mode.rawValue)
+                        }
+                    }
+                }
+            }
+
             Section("Behavior") {
-                Toggle("Prevent sleep while Claude is working", isOn: $sleepPrevention)
+                Toggle("Prevent sleep while an agent is working", isOn: $sleepPrevention)
                     .onChange(of: sleepPrevention) { _, newValue in
                         appState.sleepPreventionEnabled = newValue
                     }
@@ -510,7 +528,7 @@ private struct ServerPane: View {
             }
 
             Section("Claude Code Integration") {
-                Button("Setup Hooks...") {
+                Button("Setup Integrations...") {
                     appState.showOnboarding()
                 }
             }
@@ -577,6 +595,35 @@ private struct DebugPane: View {
 
     var body: some View {
         Form {
+            Section("Screenshot Mode") {
+                Toggle("Screenshot Mode", isOn: Binding(
+                    get: { appState.sessionManager.screenshotMode },
+                    set: { newValue in
+                        appState.sessionManager.screenshotMode = newValue
+                        if !newValue {
+                            appState.sessionManager.clearScreenshotSessions()
+                        }
+                    }
+                ))
+                Text("Hides real sessions. Only shows test sessions from the buttons below.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Screenshot Scenarios") {
+                Button("Hero (multi-session)") { appState.screenshotHero() }
+                Button("Edit Diff Approval") { appState.screenshotEditDiff() }
+                Button("Completion + Todos") { appState.screenshotCompletionAndTodos() }
+                Divider()
+                Button("State: Thinking") { appState.screenshotThinkingState() }
+                Button("State: Running") { appState.screenshotRunningState() }
+                Button("State: Compacting") { appState.screenshotCompactingState() }
+                Divider()
+                Button("Clear Screenshot Sessions") {
+                    appState.sessionManager.clearScreenshotSessions()
+                }
+            }
+
             Section("Test Sessions") {
                 Button("Working (Bash)") { appState.sendTestEvent("PreToolUse", toolName: "Bash") }
                 Button("Working (Edit)") { appState.sendTestEvent("PreToolUse", toolName: "Edit") }
