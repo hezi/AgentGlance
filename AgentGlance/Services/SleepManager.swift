@@ -11,7 +11,7 @@ final class SleepManager {
     func preventSleep() {
         guard !isPreventingSleep else { return }
 
-        let reason = "Claude Code is actively working" as CFString
+        let reason = "An AI coding agent is actively working" as CFString
         let success = IOPMAssertionCreateWithName(
             kIOPMAssertionTypePreventUserIdleSystemSleep as CFString,
             IOPMAssertionLevel(kIOPMAssertionLevelOn),

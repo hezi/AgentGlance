@@ -81,7 +81,7 @@ final class NotificationManager: NSObject {
     func setupCategories() {
         let openAction = UNNotificationAction(
             identifier: "OPEN_CLAUDE",
-            title: "Open Claude",
+            title: "Open Terminal",
             options: [.foreground]
         )
         let dismissAction = UNNotificationAction(

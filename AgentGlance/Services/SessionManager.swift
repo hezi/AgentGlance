@@ -8,15 +8,22 @@ private let logger = Logger(subsystem: "app.agentglance", category: "SessionMana
 final class SessionManager {
     private(set) var sessions: [String: Session] = [:]
     private var cleanupTimers: [String: Timer] = [:]
+    private var livenessTimer: Timer?
 
     var onStateChange: ((Session, SessionState) -> Void)?
     /// Called when a non-permission event arrives for a session that has pending decisions.
     /// AppState wires this to HookServer to flush stale pending decisions.
     var onStalePendingDecisions: ((String) -> Void)?
 
+    /// When true, only show sessions with "ss-" prefix IDs (screenshot test sessions)
+    var screenshotMode = false
+
+    private static let screenshotPrefix = "ss-"
+
     var activeSessions: [Session] {
         sessions.values
             .filter { $0.state != .complete }
+            .filter { !screenshotMode || $0.id.hasPrefix(Self.screenshotPrefix) }
             .sorted { lhs, rhs in
                 let lp = Self.statePriority(lhs.state)
                 let rp = Self.statePriority(rhs.state)
@@ -26,12 +33,20 @@ final class SessionManager {
     }
 
     var allSessions: [Session] {
-        sessions.values.sorted { lhs, rhs in
-            let lp = Self.statePriority(lhs.state)
-            let rp = Self.statePriority(rhs.state)
-            if lp != rp { return lp < rp }
-            return lhs.lastActivity > rhs.lastActivity
-        }
+        sessions.values
+            .filter { !screenshotMode || $0.id.hasPrefix(Self.screenshotPrefix) }
+            .sorted { lhs, rhs in
+                let lp = Self.statePriority(lhs.state)
+                let rp = Self.statePriority(rhs.state)
+                if lp != rp { return lp < rp }
+                return lhs.lastActivity > rhs.lastActivity
+            }
+    }
+
+    /// Remove all screenshot test sessions
+    func clearScreenshotSessions() {
+        let ssKeys = sessions.keys.filter { $0.hasPrefix(Self.screenshotPrefix) }
+        for key in ssKeys { sessions.removeValue(forKey: key) }
     }
 
     /// Lower = higher priority for display ordering
@@ -116,7 +131,7 @@ final class SessionManager {
         // Stage 0: Direct match by hook session_id (canonical, most common path)
         if let existing = sessions[event.session_id] {
             existing.lastActivity = Date()
-            existing.cwd = event.cwd
+            if !event.cwd.isEmpty { existing.cwd = event.cwd }
             if let mode = event.permission_mode { existing.permissionMode = mode }
             if let name = event.session_name, !name.isEmpty { existing.name = name }
             applyBridgeEnrichment(session: existing, event: event)
@@ -533,6 +548,46 @@ final class SessionManager {
         // Show .../<last 2 components>
         let last = components.suffix(2).joined(separator: "/")
         return ".../" + last
+    }
+
+    // MARK: - Process Liveness
+
+    /// Start a repeating timer that removes sessions whose backing process has exited
+    func startLivenessChecks() {
+        livenessTimer?.invalidate()
+        livenessTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.checkProcessLiveness()
+            }
+        }
+    }
+
+    func stopLivenessChecks() {
+        livenessTimer?.invalidate()
+        livenessTimer = nil
+    }
+
+    private func checkProcessLiveness() {
+        for (id, session) in sessions where session.state != .complete {
+            if let pid = session.processPID {
+                // Session has a known PID — check if process is still alive
+                if !ProcessScanner.isProcessRunning(pid: pid) {
+                    logger.info("Process \(pid) for session \(session.name ?? id.prefix(8).description) is no longer running — marking complete")
+                    session.pendingToolSummary = nil
+                    transition(session, to: .complete)
+                    scheduleCleanup(for: id)
+                }
+            } else if session.state == .idle || session.state == .ready {
+                // No PID and no recent activity — likely a ghost session
+                let staleAge: TimeInterval = 120
+                if Date().timeIntervalSince(session.lastActivity) > staleAge {
+                    logger.info("Session \(session.name ?? id.prefix(8).description) has no PID and is stale — marking complete")
+                    session.pendingToolSummary = nil
+                    transition(session, to: .complete)
+                    scheduleCleanup(for: id)
+                }
+            }
+        }
     }
 
     // MARK: - Cleanup
