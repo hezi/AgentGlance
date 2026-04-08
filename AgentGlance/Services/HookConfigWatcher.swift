@@ -89,6 +89,10 @@ final class HookConfigWatcher {
     // MARK: - Verification
 
     /// Returns true if our hooks are present in settings.json
+    func verifyClaudeHooks() -> Bool {
+        return verifyHooks()
+    }
+
     private func verifyHooks() -> Bool {
         guard let data = FileManager.default.contents(atPath: settingsPath),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -133,8 +137,9 @@ final class HookConfigWatcher {
             settings = [:]
         }
 
-        // Backup before modifying
+        // Backup before modifying (remove stale backup first)
         let backupPath = settingsPath + ".agentglance-backup"
+        try? fm.removeItem(atPath: backupPath)
         try? fm.copyItem(atPath: settingsPath, toPath: backupPath)
 
         // Merge our hooks into existing hooks (preserve non-AgentGlance hooks)
@@ -172,20 +177,18 @@ final class HookConfigWatcher {
 
         settings["hooks"] = hooks
 
-        // Write atomically via temp file + rename
+        // Write atomically — Data.write with .atomic uses a temp file + rename internally,
+        // which is safe even if the destination already exists
         guard let jsonData = try? JSONSerialization.data(withJSONObject: settings, options: [.prettyPrinted, .sortedKeys]) else {
             logger.error("Failed to serialize repaired settings")
             return
         }
 
-        let tmpPath = settingsPath + ".agentglance-tmp"
         do {
-            try jsonData.write(to: URL(fileURLWithPath: tmpPath))
-            try fm.moveItem(atPath: tmpPath, toPath: settingsPath)
+            try jsonData.write(to: URL(fileURLWithPath: settingsPath), options: .atomic)
         } catch {
-            // moveItem fails if destination exists — remove first
-            try? fm.removeItem(atPath: settingsPath)
-            try? fm.moveItem(atPath: tmpPath, toPath: settingsPath)
+            logger.error("Failed to write repaired settings: \(error.localizedDescription)")
+            return
         }
 
         repairTimestamps.append(Date())

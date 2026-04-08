@@ -123,13 +123,7 @@ struct OnboardingView: View {
     private func checkSettings() {
         checking = true
         DispatchQueue.global().async {
-            let settingsPath = NSString("~/.claude/settings.json").expandingTildeInPath
-            let exists = FileManager.default.fileExists(atPath: settingsPath)
-            var found = false
-            if exists, let data = FileManager.default.contents(atPath: settingsPath),
-               let content = String(data: data, encoding: .utf8) {
-                found = content.contains("localhost:\(port)/hook")
-            }
+            let found = appState.hookConfigWatcher.verifyClaudeHooks()
             DispatchQueue.main.async {
                 hooksDetected = found
                 checking = false
