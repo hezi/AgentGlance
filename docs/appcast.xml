@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>AgentGlance Updates</title>
+        <link>https://agentglance.app/appcast.xml</link>
+        <description>Most recent changes with links to updates.</description>
+        <language>en</language>
+
+        <!-- Add new items here when releasing. Most recent first. -->
+        <!--
+        <item>
+            <title>Version X.Y.Z</title>
+            <sparkle:version>BUILD_NUMBER</sparkle:version>
+            <sparkle:shortVersionString>X.Y.Z</sparkle:shortVersionString>
+            <sparkle:releaseNotesLink>https://github.com/hezi/AgentGlance/releases/tag/vX.Y.Z</sparkle:releaseNotesLink>
+            <pubDate>Mon, 01 Jan 2026 00:00:00 +0000</pubDate>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure
+                url="https://github.com/hezi/AgentGlance/releases/download/vX.Y.Z/AgentGlance.zip"
+                length="FILESIZE_IN_BYTES"
+                type="application/octet-stream"
+                sparkle:edSignature="ED_SIGNATURE_HERE"
+            />
+        </item>
+        -->
+
+    </channel>
+</rss>

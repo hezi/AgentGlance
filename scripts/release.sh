@@ -180,7 +180,79 @@ cd - > /dev/null
 
 info "Release zip: $RELEASE_ZIP"
 
-# Step 5: Upload to GitHub (if --upload)
+# Step 5: Sign for Sparkle updates
+SPARKLE_SIGN=""
+SPARKLE_BIN=$(find ~/Library/Developer/Xcode/DerivedData -path "*/Sparkle/bin/sign_update" -type f 2>/dev/null | head -1)
+if [ -z "$SPARKLE_BIN" ]; then
+    # Also check SourcePackages build artifacts
+    SPARKLE_BIN=$(find ~/Library/Developer/Xcode/DerivedData -name "sign_update" -path "*/artifacts/*" -type f 2>/dev/null | head -1)
+fi
+
+if [ -n "$SPARKLE_BIN" ] && [ -x "$SPARKLE_BIN" ]; then
+    info "Signing zip for Sparkle updates..."
+    SPARKLE_SIGN=$("$SPARKLE_BIN" "$RELEASE_ZIP" 2>/dev/null || true)
+    if [ -n "$SPARKLE_SIGN" ]; then
+        info "Sparkle signature generated"
+    else
+        warn "Sparkle signing failed — appcast will need manual signature"
+    fi
+else
+    warn "Sparkle sign_update not found — skipping Sparkle signing"
+    warn "Build the project first so SPM downloads the Sparkle binary"
+fi
+
+# Step 6: Update appcast.xml for Sparkle
+APPCAST_PATH="docs/appcast.xml"
+if [ -f "$APPCAST_PATH" ]; then
+    RELEASE_SIZE=$(stat -f%z "$RELEASE_ZIP" 2>/dev/null || stat --printf='%s' "$RELEASE_ZIP" 2>/dev/null || echo "0")
+    DOWNLOAD_URL="https://github.com/hezi/AgentGlance/releases/download/v${VERSION}/AgentGlance-v${VERSION}.zip"
+    PUB_DATE=$(date -R 2>/dev/null || date "+%a, %d %b %Y %H:%M:%S %z")
+
+    # Extract edSignature from Sparkle output (format: sparkle:edSignature="..." length="...")
+    ED_SIG=""
+    if [ -n "$SPARKLE_SIGN" ]; then
+        ED_SIG=$(echo "$SPARKLE_SIGN" | grep -o 'sparkle:edSignature="[^"]*"' | sed 's/sparkle:edSignature="//' | sed 's/"$//' || true)
+    fi
+
+    # Build the new item XML
+    NEW_ITEM="        <item>
+            <title>Version ${VERSION}</title>
+            <sparkle:version>${BUILD}</sparkle:version>
+            <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
+            <sparkle:releaseNotesLink>https://github.com/hezi/AgentGlance/releases/tag/v${VERSION}</sparkle:releaseNotesLink>
+            <pubDate>${PUB_DATE}</pubDate>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure
+                url=\"${DOWNLOAD_URL}\"
+                length=\"${RELEASE_SIZE}\"
+                type=\"application/octet-stream\"
+                sparkle:edSignature=\"${ED_SIG}\"
+            />
+        </item>"
+
+    # Insert after the <language>en</language> line (before any existing items or comments)
+    # Use a temp file for the insertion
+    APPCAST_TMP="$BUILD_DIR/appcast-new.xml"
+    awk -v item="$NEW_ITEM" '
+        /<language>en<\/language>/ {
+            print
+            print ""
+            print item
+            next
+        }
+        { print }
+    ' "$APPCAST_PATH" > "$APPCAST_TMP"
+    cp "$APPCAST_TMP" "$APPCAST_PATH"
+
+    info "Updated $APPCAST_PATH with v${VERSION}"
+    if [ -z "$ED_SIG" ]; then
+        warn "No Sparkle signature — update the edSignature in appcast.xml manually"
+    fi
+else
+    warn "appcast.xml not found at $APPCAST_PATH — skipping Sparkle appcast update"
+fi
+
+# Step 7: Upload to GitHub (if --upload)
 if $UPLOAD; then
     if ! command -v gh &>/dev/null; then
         error "gh CLI not found. Install with: brew install gh"
@@ -196,6 +268,15 @@ if $UPLOAD; then
         || error "GitHub release failed. Is gh authenticated?"
 
     info "Release published: https://github.com/hezi/AgentGlance/releases/tag/$TAG"
+
+    # Commit and push the updated appcast
+    if [ -f "$APPCAST_PATH" ] && git diff --quiet "$APPCAST_PATH" 2>/dev/null; [ $? -ne 0 ]; then
+        info "Committing updated appcast.xml..."
+        git add "$APPCAST_PATH"
+        git commit -m "Update appcast.xml for v${VERSION}"
+        git push
+        info "Appcast pushed to GitHub Pages"
+    fi
 else
     info "Done. Run with --upload to create a GitHub release."
 fi
