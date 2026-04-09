@@ -6,6 +6,14 @@ struct AgentGlanceApp: App {
     @State private var appState = AppState()
     private let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
 
+    init() {
+        // Sparkle's background-app mode suppresses UI for automatic checks.
+        // Run an explicit check so users see the update dialog on launch.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [updaterController] in
+            updaterController.updater.checkForUpdatesInBackground()
+        }
+    }
+
     var body: some Scene {
         MenuBarExtra {
             MenuBarView(appState: appState, updater: updaterController.updater)
