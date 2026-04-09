@@ -99,8 +99,12 @@ struct NotchOverlay: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if geometry.expandUpward {
+                Spacer(minLength: 0)
+            }
             notchContent
-                .padding(.top, 4)
+                .padding(.top, geometry.expandUpward ? 0 : 4)
+                .padding(.bottom, geometry.expandUpward ? 4 : 0)
                 .background(
                     GeometryReader { geo in
                         Color.clear
@@ -112,16 +116,28 @@ struct NotchOverlay: View {
                             }
                     }
                 )
-            Spacer(minLength: 0)
+            if !geometry.expandUpward {
+                Spacer(minLength: 0)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var notchContent: some View {
         VStack(spacing: 0) {
+            if isExpanded && geometry.expandUpward {
+                if sessions.isEmpty {
+                    emptyStateView
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                } else {
+                    expandedDetail
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
+            }
+
             collapsedBar
 
-            if isExpanded {
+            if isExpanded && !geometry.expandUpward {
                 if sessions.isEmpty {
                     emptyStateView
                         .transition(.opacity.combined(with: .move(edge: .top)))

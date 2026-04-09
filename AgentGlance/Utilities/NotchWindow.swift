@@ -11,6 +11,9 @@ final class NotchGeometry: ObservableObject {
 
     /// True while the user is dragging the pill. Suppresses hover-expand.
     var isDragging = false
+
+    /// When true, the expanded content should appear above the pill instead of below.
+    @Published var expandUpward = false
 }
 
 final class NotchWindow: NSPanel {
@@ -27,7 +30,15 @@ final class NotchWindow: NSPanel {
     private var globalDragUpMonitor: Any?
     private var dragStartMouseLocation: NSPoint = .zero
     private var dragStartWindowOrigin: NSPoint = .zero
-    private let snapDistance: CGFloat = 150
+    private let edgeSnapDistance: CGFloat = 40
+    private let defaultSnapDistance: CGFloat = 40
+    /// Horizontal padding between window edge and the visible pill (glow + padding).
+    private let pillInset: CGFloat = 40
+    private var snapIndicatorWindow: NSWindow?
+    private var cornerIndicatorWindows: [NSWindow] = []
+    /// The pill center and window origin for the snap target, captured at drag start.
+    private var snapTargetPillCenter: NSPoint = .zero
+    private var snapTargetOrigin: NSPoint = .zero
 
     // Follow-cursor screen tracking
     private var lastScreenID: CGDirectDisplayID = 0
@@ -137,6 +148,7 @@ final class NotchWindow: NSPanel {
         origin.y = max(sf.minY, min(origin.y, screen.visibleFrame.maxY - windowHeight))
 
         setFrame(NSRect(x: origin.x, y: origin.y, width: w, height: windowHeight), display: true)
+        updateExpandDirection()
     }
 
     // MARK: - Mouse Pass-Through, Follow-Cursor & Drag
@@ -167,6 +179,7 @@ final class NotchWindow: NSPanel {
         geometry.isDragging = true
         dragStartMouseLocation = NSEvent.mouseLocation
         dragStartWindowOrigin = frame.origin
+        showSnapIndicator()
         installDragMonitors()
     }
 
@@ -201,18 +214,66 @@ final class NotchWindow: NSPanel {
         }
     }
 
+    private func draggedOrigin() -> NSPoint {
+        let currentMouse = NSEvent.mouseLocation
+        let deltaX = currentMouse.x - dragStartMouseLocation.x
+        let deltaY = currentMouse.y - dragStartMouseLocation.y
+        var origin = NSPoint(
+            x: dragStartWindowOrigin.x + deltaX,
+            y: dragStartWindowOrigin.y + deltaY
+        )
+
+        let screen = targetScreen()
+        let sf = screen.frame
+        let w = frame.width
+
+        // Snap to default: check if the mouse is near the snap indicator (both axes)
+        let nearDefaultX = abs(currentMouse.x - snapTargetPillCenter.x) < defaultSnapDistance
+        let nearDefaultY = abs(currentMouse.y - snapTargetPillCenter.y) < defaultSnapDistance
+        let nearDefault = nearDefaultX && nearDefaultY
+        updateSnapIndicators(mouse: currentMouse, origin: origin)
+        if nearDefault {
+            return snapTargetOrigin
+        }
+
+        // Snap to top edge: mouse y near the snap indicator y (same height as default)
+        // Applied independently so it composes with left/right edge snaps
+        if nearDefaultY {
+            origin.y = snapTargetOrigin.y
+        }
+
+        // Snap to screen edges — use pillInset so the visible pill aligns with the edge
+        let pillLeft = origin.x + pillInset
+        let pillRight = origin.x + w - pillInset
+        if abs(pillLeft - sf.minX) < edgeSnapDistance {
+            origin.x = sf.minX - pillInset
+        } else if abs(pillRight - sf.maxX) < edgeSnapDistance {
+            origin.x = sf.maxX - w + pillInset
+        }
+
+        // Bottom: mouse near screen bottom → snap pill bottom to screen bottom.
+        // Use the same mouse-based approach as top snap.
+        // The pill bottom in screen coords = mouse.y - (mouse grab offset from pill bottom).
+        // At drag start the grab offset is constant, so we compute the snap origin
+        // by figuring out where origin.y must be to put the pill bottom at sf.minY.
+        let pillH = geometry.pillRect.height > 0 ? geometry.pillRect.height : 32
+        let snapBottomOriginY = sf.minY - frame.height + 4 + pillH
+        // The mouse y when pill bottom is at sf.minY:
+        // mouse.y = dragStartMouse.y + (snapBottomOriginY - dragStartOrigin.y)
+        let mouseYAtBottom = dragStartMouseLocation.y + (snapBottomOriginY - dragStartWindowOrigin.y)
+        if abs(currentMouse.y - mouseYAtBottom) < edgeSnapDistance {
+            origin.y = snapBottomOriginY
+        }
+
+        return origin
+    }
+
     private func installDragMonitors() {
         ignoresMouseEvents = false // must accept events during drag
 
         dragMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDragged) { [weak self] event in
             guard let self, geometry.isDragging else { return event }
-            let currentMouse = NSEvent.mouseLocation
-            let deltaX = currentMouse.x - dragStartMouseLocation.x
-            let deltaY = currentMouse.y - dragStartMouseLocation.y
-            setFrameOrigin(NSPoint(
-                x: dragStartWindowOrigin.x + deltaX,
-                y: dragStartWindowOrigin.y + deltaY
-            ))
+            setFrameOrigin(draggedOrigin())
             return event
         }
 
@@ -225,13 +286,7 @@ final class NotchWindow: NSPanel {
         // Global monitors for when mouse leaves the window during fast drag
         globalDragMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDragged) { [weak self] _ in
             guard let self, geometry.isDragging else { return }
-            let currentMouse = NSEvent.mouseLocation
-            let deltaX = currentMouse.x - dragStartMouseLocation.x
-            let deltaY = currentMouse.y - dragStartMouseLocation.y
-            setFrameOrigin(NSPoint(
-                x: dragStartWindowOrigin.x + deltaX,
-                y: dragStartWindowOrigin.y + deltaY
-            ))
+            setFrameOrigin(draggedOrigin())
         }
 
         globalDragUpMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseUp) { [weak self] _ in
@@ -243,27 +298,31 @@ final class NotchWindow: NSPanel {
     private func finishDrag() {
         geometry.isDragging = false
         removeDragMonitors()
+        hideSnapIndicator()
 
         let defaultOrigin = defaultWindowOrigin()
         let currentOrigin = frame.origin
-        let distance = hypot(currentOrigin.x - defaultOrigin.x, currentOrigin.y - defaultOrigin.y)
 
-        if distance < snapDistance {
-            // Snap back to default with animation
-            UserDefaults.standard.set(0.0, forKey: Constants.UserDefaultsKeys.pillOffsetX)
-            UserDefaults.standard.set(0.0, forKey: Constants.UserDefaultsKeys.pillOffsetY)
-            NSAnimationContext.runAnimationGroup { ctx in
-                ctx.duration = 0.3
-                ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                self.animator().setFrameOrigin(defaultOrigin)
-            }
-        } else {
-            // Persist custom offset
-            let offsetX = currentOrigin.x - defaultOrigin.x
-            let offsetY = currentOrigin.y - defaultOrigin.y
-            UserDefaults.standard.set(offsetX, forKey: Constants.UserDefaultsKeys.pillOffsetX)
-            UserDefaults.standard.set(offsetY, forKey: Constants.UserDefaultsKeys.pillOffsetY)
-        }
+        // Persist offset from default (snapping already applied during drag)
+        let offsetX = currentOrigin.x - defaultOrigin.x
+        let offsetY = currentOrigin.y - defaultOrigin.y
+        UserDefaults.standard.set(offsetX, forKey: Constants.UserDefaultsKeys.pillOffsetX)
+        UserDefaults.standard.set(offsetY, forKey: Constants.UserDefaultsKeys.pillOffsetY)
+
+        updateExpandDirection()
+    }
+    
+    /// Expand upward only when snapped to the bottom edge.
+    func updateExpandDirection() {
+        // disable upwards for now
+        return
+        
+        let screen = targetScreen()
+        let sf = screen.frame
+        let pillH = geometry.pillRect.height > 0 ? geometry.pillRect.height : 32
+        let pillBottom = frame.origin.y + frame.height - 4 - pillH
+        // Check if pill bottom is at (or very near) the screen bottom — i.e. bottom-snapped
+        geometry.expandUpward = abs(pillBottom - sf.minY) < 2
     }
 
     private func removeDragMonitors() {
@@ -271,6 +330,162 @@ final class NotchWindow: NSPanel {
         if let m = dragUpMonitor { NSEvent.removeMonitor(m); dragUpMonitor = nil }
         if let m = globalDragMonitor { NSEvent.removeMonitor(m); globalDragMonitor = nil }
         if let m = globalDragUpMonitor { NSEvent.removeMonitor(m); globalDragUpMonitor = nil }
+    }
+
+    // MARK: - Snap Target Indicator
+
+    private func makeIndicatorWindow(rect: NSRect, pillW: CGFloat, pillH: CGFloat) -> NSWindow {
+        let indicator = NSWindow(
+            contentRect: rect,
+            styleMask: .borderless,
+            backing: .buffered,
+            defer: false
+        )
+        indicator.level = .statusBar - 1
+        indicator.isOpaque = false
+        indicator.backgroundColor = .clear
+        indicator.hasShadow = false
+        indicator.ignoresMouseEvents = true
+        indicator.collectionBehavior = [.canJoinAllSpaces, .stationary]
+
+        let shapeView = NSView(frame: NSRect(x: 0, y: 0, width: pillW, height: pillH))
+        shapeView.wantsLayer = true
+        shapeView.layer?.cornerRadius = pillH / 2
+        shapeView.layer?.borderWidth = 1.5
+        shapeView.layer?.borderColor = NSColor.white.withAlphaComponent(0.3).cgColor
+        shapeView.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.05).cgColor
+        indicator.contentView = shapeView
+
+        indicator.alphaValue = 0
+        indicator.orderFront(nil)
+        return indicator
+    }
+
+    private func showSnapIndicator() {
+        let screen = targetScreen()
+        let pillW: CGFloat = 200
+        let pillH: CGFloat = 32
+        let w = frame.width
+        let h = frame.height
+        let sf = screen.frame
+        let vf = screen.visibleFrame
+
+        // Default position: center-top
+        let defaultOriginX = sf.midX - w / 2
+        let defaultOriginY = vf.maxY - h
+        let defaultPillX = defaultOriginX + (w - pillW) / 2
+        let defaultPillY = defaultOriginY + h - pillH - 4
+
+        snapTargetPillCenter = NSPoint(x: defaultPillX + pillW / 2, y: defaultPillY + pillH / 2)
+        snapTargetOrigin = NSPoint(x: defaultOriginX, y: defaultOriginY)
+
+        // Create default indicator
+        let defaultIndicator = makeIndicatorWindow(
+            rect: NSRect(x: defaultPillX, y: defaultPillY, width: pillW, height: pillH),
+            pillW: pillW, pillH: pillH
+        )
+        snapIndicatorWindow = defaultIndicator
+
+        // Corner positions: pill x at left/right edges, pill y at top/bottom
+        let leftPillX = sf.minX
+        let rightPillX = sf.maxX - pillW
+        let topPillY = defaultPillY  // same as default top
+        let bottomPillY = sf.minY
+
+        let corners: [NSRect] = [
+            NSRect(x: leftPillX, y: topPillY, width: pillW, height: pillH),     // top-left
+            NSRect(x: rightPillX, y: topPillY, width: pillW, height: pillH),    // top-right
+            NSRect(x: leftPillX, y: bottomPillY, width: pillW, height: pillH),  // bottom-left
+            NSRect(x: rightPillX, y: bottomPillY, width: pillW, height: pillH), // bottom-right
+        ]
+
+        for rect in corners {
+            let corner = makeIndicatorWindow(rect: rect, pillW: pillW, pillH: pillH)
+            cornerIndicatorWindows.append(corner)
+        }
+
+        // Fade all in
+        let allIndicators = [defaultIndicator] + cornerIndicatorWindows
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.2
+            for ind in allIndicators {
+                ind.animator().alphaValue = 1
+            }
+        }
+    }
+
+    private func hideSnapIndicator() {
+        let allIndicators = [snapIndicatorWindow].compactMap { $0 } + cornerIndicatorWindows
+        guard !allIndicators.isEmpty else { return }
+        NSAnimationContext.runAnimationGroup({ ctx in
+            ctx.duration = 0.15
+            for ind in allIndicators {
+                ind.animator().alphaValue = 0
+            }
+        }, completionHandler: {
+            for ind in allIndicators {
+                ind.orderOut(nil)
+            }
+        })
+        snapIndicatorWindow = nil
+        cornerIndicatorWindows.removeAll()
+    }
+
+    private func updateSnapIndicators(mouse: NSPoint, origin: NSPoint) {
+        let screen = targetScreen()
+        let sf = screen.frame
+        let w = frame.width
+
+        // Pill edge distances from screen edges (used for corner proximity)
+        let pillLeft = origin.x + pillInset
+        let pillRight = origin.x + w - pillInset
+        let leftDist = abs(pillLeft - sf.minX)
+        let rightDist = abs(pillRight - sf.maxX)
+        // Top/bottom use mouse-based y proximity to the snap indicator positions
+        let topDist = abs(mouse.y - snapTargetPillCenter.y)
+        let pillH = geometry.pillRect.height > 0 ? geometry.pillRect.height : 32
+        let snapBottomOriginY = sf.minY - frame.height + 4 + pillH
+        let mouseYAtBottom = dragStartMouseLocation.y + (snapBottomOriginY - dragStartWindowOrigin.y)
+        let bottomDist = abs(mouse.y - mouseYAtBottom)
+
+        let fadeRange: CGFloat = 200
+
+        // Default indicator: mouse proximity
+        if let shapeView = snapIndicatorWindow?.contentView {
+            let center = NSPoint(x: snapIndicatorWindow!.frame.midX, y: snapIndicatorWindow!.frame.midY)
+            let dist = hypot(mouse.x - center.x, mouse.y - center.y)
+            let proximity = max(0, min(1, 1 - dist / fadeRange))
+            applyProximityColor(to: shapeView, proximity: proximity)
+        }
+
+        // Corner indicators: proximity based on how close pill edges are to screen edges
+        // Order: top-left, top-right, bottom-left, bottom-right
+        let cornerProximities: [(CGFloat, CGFloat)] = [
+            (leftDist, topDist),
+            (rightDist, topDist),
+            (leftDist, bottomDist),
+            (rightDist, bottomDist),
+        ]
+
+        for (i, indicator) in cornerIndicatorWindows.enumerated() {
+            guard let shapeView = indicator.contentView, i < cornerProximities.count else { continue }
+            let (xDist, yDist) = cornerProximities[i]
+            // Use the worse (farther) axis so both edges need to be close for full green
+            let maxDist = max(xDist, yDist)
+            let proximity = max(0, min(1, 1 - maxDist / fadeRange))
+            applyProximityColor(to: shapeView, proximity: proximity)
+        }
+    }
+
+    private func applyProximityColor(to view: NSView, proximity: CGFloat) {
+        let borderAlpha = 0.3 + proximity * 0.5
+        let bgAlpha = 0.05 + proximity * 0.1
+        let r = 1.0 * (1 - proximity)
+        let g = 1.0
+        let b = 1.0 * (1 - proximity)
+        let blended = CGColor(red: r, green: g, blue: b, alpha: 1)
+        view.layer?.borderColor = blended.copy(alpha: borderAlpha)
+        view.layer?.backgroundColor = blended.copy(alpha: bgAlpha)
     }
 
     override var canBecomeKey: Bool { true }
