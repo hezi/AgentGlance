@@ -30,6 +30,7 @@ enum Constants {
         static let suppressExpansionWhenInTerminal = "suppressExpansionWhenInTerminal"
         static let sessionGroupMode = "sessionGroupMode"
         static let groupSortMode = "groupSortMode"
+        static let collapsedGroups = "collapsedGroups"
     }
 }
 

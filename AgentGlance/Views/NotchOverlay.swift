@@ -16,7 +16,7 @@ struct NotchOverlay: View {
     @AppStorage(Constants.UserDefaultsKeys.keyboardNavMode) private var keyboardNavModeRaw = KeyboardNavMode.arrows.rawValue
     @AppStorage(Constants.UserDefaultsKeys.sessionGroupMode) private var groupModeRaw = SessionGroupMode.none.rawValue
     @AppStorage(Constants.UserDefaultsKeys.groupSortMode) private var sortModeRaw = GroupSortMode.lastUpdated.rawValue
-    @State private var collapsedGroups: Set<String> = []
+    @State private var collapsedGroups: Set<String> = Set(UserDefaults.standard.stringArray(forKey: Constants.UserDefaultsKeys.collapsedGroups) ?? [])
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var geometry: NotchGeometry
 
@@ -365,6 +365,7 @@ struct NotchOverlay: View {
                 } else {
                     collapsedGroups.insert(group.id)
                 }
+                UserDefaults.standard.set(Array(collapsedGroups), forKey: Constants.UserDefaultsKeys.collapsedGroups)
             }
         } label: {
             HStack(spacing: 5) {

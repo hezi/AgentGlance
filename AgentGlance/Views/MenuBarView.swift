@@ -6,7 +6,7 @@ struct MenuBarView: View {
     var updater: SPUUpdater? = nil
     @AppStorage(Constants.UserDefaultsKeys.sessionGroupMode) private var groupModeRaw = SessionGroupMode.none.rawValue
     @AppStorage(Constants.UserDefaultsKeys.groupSortMode) private var sortModeRaw = GroupSortMode.lastUpdated.rawValue
-    @State private var collapsedGroups: Set<String> = []
+    @State private var collapsedGroups: Set<String> = Set(UserDefaults.standard.stringArray(forKey: Constants.UserDefaultsKeys.collapsedGroups) ?? [])
 
     private var groupMode: SessionGroupMode {
         SessionGroupMode(rawValue: groupModeRaw) ?? .none
@@ -141,6 +141,7 @@ struct MenuBarView: View {
                 } else {
                     collapsedGroups.insert(group.id)
                 }
+                UserDefaults.standard.set(Array(collapsedGroups), forKey: Constants.UserDefaultsKeys.collapsedGroups)
             }
         } label: {
             HStack(spacing: 6) {
