@@ -45,6 +45,8 @@
 		A10023 /* EditDiffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10023 /* EditDiffView.swift */; };
 		A10024 /* HookConfigWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10024 /* HookConfigWatcher.swift */; };
 		A10025 /* SessionGrouping.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10025 /* SessionGrouping.swift */; };
+		A10026 /* ExperimentalNotchWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10026 /* ExperimentalNotchWindow.swift */; };
+		A10027 /* NotchHeaderBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10027 /* NotchHeaderBar.swift */; };
 		D57154A02F86BA370083195F /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = D571549F2F86BA370083195F /* Sparkle */; };
 /* End PBXBuildFile section */
 
@@ -74,6 +76,8 @@
 		B10023 /* EditDiffView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditDiffView.swift; sourceTree = "<group>"; };
 		B10024 /* HookConfigWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HookConfigWatcher.swift; sourceTree = "<group>"; };
 		B10025 /* SessionGrouping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionGrouping.swift; sourceTree = "<group>"; };
+		B10026 /* ExperimentalNotchWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentalNotchWindow.swift; sourceTree = "<group>"; };
+		B10027 /* NotchHeaderBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchHeaderBar.swift; sourceTree = "<group>"; };
 		P10001 /* AgentGlance.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AgentGlance.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -157,6 +161,8 @@
 			isa = PBXGroup;
 			children = (
 				B10010 /* NotchOverlay.swift */,
+				B10026 /* ExperimentalNotchWindow.swift */,
+				B10027 /* NotchHeaderBar.swift */,
 				B10011 /* MenuBarView.swift */,
 				B10012 /* SettingsView.swift */,
 				B10013 /* OnboardingView.swift */,
@@ -322,6 +328,8 @@
 				A10008 /* SleepManager.swift in Sources */,
 				A10009 /* NotificationManager.swift in Sources */,
 				A10010 /* NotchOverlay.swift in Sources */,
+				A10026 /* ExperimentalNotchWindow.swift in Sources */,
+				A10027 /* NotchHeaderBar.swift in Sources */,
 				A10011 /* MenuBarView.swift in Sources */,
 				A10012 /* SettingsView.swift in Sources */,
 				A10013 /* OnboardingView.swift in Sources */,

@@ -7,6 +7,9 @@ struct AgentGlanceApp: App {
     private let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
 
     init() {
+        // Share the updater with AppState so Settings can trigger checks
+        appState.updater = updaterController.updater
+
         // Sparkle's background-app mode suppresses UI for automatic checks.
         // Run an explicit check so users see the update dialog on launch.
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [updaterController] in
@@ -14,13 +17,27 @@ struct AgentGlanceApp: App {
         }
     }
 
+    @Environment(\.openWindow) private var openWindow
+
     var body: some Scene {
         MenuBarExtra {
             MenuBarView(appState: appState, updater: updaterController.updater)
+            #if DEBUG
+            Divider()
+            Button("Open Experimental Window") {
+                openWindow(id: "experimental-notch")
+            }
+            #endif
         } label: {
             menuBarLabel
         }
         .menuBarExtraStyle(.window)
+
+        #if DEBUG
+        if #available(macOS 15.0, *) {
+            ExperimentalNotchScene(appState: appState)
+        }
+        #endif
     }
 
     @ViewBuilder
