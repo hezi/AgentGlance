@@ -1,9 +1,10 @@
 import SwiftUI
 import ServiceManagement
 import KeyboardShortcuts
+import Sparkle
 
 enum SettingsTab: String, CaseIterable, Identifiable {
-    case general, appearance, server, permissions
+    case general, appearance, server, permissions, about
     #if DEBUG
     case debug
     #endif
@@ -14,8 +15,9 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         switch self {
         case .general: "General"
         case .appearance: "Appearance"
-        case .server: "Server"
+        case .server: "Integrations"
         case .permissions: "Permissions"
+        case .about: "About"
         #if DEBUG
         case .debug: "Debug"
         #endif
@@ -28,6 +30,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .appearance: "textformat.size"
         case .server: "network"
         case .permissions: "lock.shield"
+        case .about: "info.circle"
         #if DEBUG
         case .debug: "ant"
         #endif
@@ -37,6 +40,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
 
 struct SettingsView: View {
     @Bindable var appState: AppState
+    var updater: SPUUpdater? = nil
     @State private var selectedTab: SettingsTab = .general
 
     var body: some View {
@@ -56,6 +60,7 @@ struct SettingsView: View {
                 case .appearance: AppearancePane()
                 case .server: ServerPane(appState: appState)
                 case .permissions: PermissionsPane()
+                case .about: AboutPane(updater: updater)
                 #if DEBUG
                 case .debug: DebugPane(appState: appState)
                 #endif
@@ -519,7 +524,7 @@ private struct ServerPane: View {
                         Circle()
                             .fill(appState.hookServer.isRunning ? .green : .red)
                             .frame(width: 8, height: 8)
-                        Text(appState.hookServer.isRunning
+                        Text(verbatim: appState.hookServer.isRunning
                              ? "Running on port \(appState.hookServer.port)"
                              : "Not running")
                             .foregroundStyle(.secondary)
@@ -693,3 +698,72 @@ private struct DebugPane: View {
     .padding()
 }
 #endif
+
+// MARK: - About
+
+private struct AboutPane: View {
+    var updater: SPUUpdater? = nil
+
+    private let appVersion: String = {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        return "\(version) (\(build))"
+    }()
+
+    private let macOSVersion: String = {
+        let v = ProcessInfo.processInfo.operatingSystemVersion
+        return "\(v.majorVersion).\(v.minorVersion).\(v.patchVersion)"
+    }()
+
+    var body: some View {
+        Form {
+            Section {
+                HStack(spacing: 16) {
+                    if let icon = NSApp.applicationIconImage {
+                        Image(nsImage: icon)
+                            .resizable()
+                            .frame(width: 64, height: 64)
+                    }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("AgentGlance")
+                            .font(.title2.bold())
+                        Text("Version \(appVersion)")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Text("macOS \(macOSVersion)")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .padding(.vertical, 4)
+
+                Button("Check for Updates...") {
+                    updater?.checkForUpdates()
+                }
+                .controlSize(.small)
+            }
+
+            Section {
+                LabeledContent("Website") {
+                    Link("agentglance.app", destination: URL(string: "https://agentglance.app")!)
+                }
+                LabeledContent("GitHub") {
+                    Link("hezi/AgentGlance", destination: URL(string: "https://github.com/hezi/AgentGlance")!)
+                }
+                LabeledContent("Issues") {
+                    Link("Report a bug", destination: URL(string: "https://github.com/hezi/AgentGlance/issues")!)
+                }
+            }
+
+            Section("Acknowledgements") {
+                LabeledContent("Sparkle") {
+                    Link("sparkle-project.org", destination: URL(string: "https://sparkle-project.org")!)
+                }
+                LabeledContent("KeyboardShortcuts") {
+                    Link("sindresorhus/KeyboardShortcuts", destination: URL(string: "https://github.com/sindresorhus/KeyboardShortcuts")!)
+                }
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
