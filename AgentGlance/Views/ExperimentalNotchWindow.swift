@@ -54,15 +54,18 @@ private struct ExperimentalNotchContent: View {
         VStack(spacing: 0) {
             // Header row: pin (left) — status (center) — settings (right)
             HStack(spacing: 4) {
-                Button {
-                    isPinned.toggle()
-                } label: {
-                    Image(systemName: isPinned ? "pin.fill" : "pin")
-                        .font(.system(size: 11))
-                        .foregroundStyle(isPinned ? Color.accentColor : .secondary)
-                        .rotationEffect(.degrees(isPinned ? 0 : 45))
+                if isExpanded {
+                    Button {
+                        isPinned.toggle()
+                    } label: {
+                        Image(systemName: isPinned ? "pin.fill" : "pin")
+                            .font(.system(size: 11))
+                            .foregroundStyle(isPinned ? Color.accentColor : .secondary)
+                            .rotationEffect(.degrees(isPinned ? 0 : 45))
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.opacity)
                 }
-                .buttonStyle(.plain)
 
                 Spacer(minLength: 4)
 
@@ -75,14 +78,17 @@ private struct ExperimentalNotchContent: View {
 
                 Spacer(minLength: 4)
 
-                Button {
-                    appState.showSettings()
-                } label: {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                if isExpanded {
+                    Button {
+                        appState.showSettings()
+                    } label: {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.opacity)
                 }
-                .buttonStyle(.plain)
             }
             .padding(.horizontal, 12)
             .frame(height: fontScale.barHeight)
