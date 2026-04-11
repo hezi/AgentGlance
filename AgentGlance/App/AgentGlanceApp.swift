@@ -21,17 +21,47 @@ struct AgentGlanceApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            MenuBarView(appState: appState, updater: updaterController.updater)
-            #if DEBUG
+            Toggle("Prevent Sleep", isOn: Binding(
+                get: { appState.sleepPreventionEnabled },
+                set: { appState.sleepPreventionEnabled = $0 }
+            ))
+
             Divider()
+
+            Button("Setup Integrations...") {
+                appState.showOnboarding()
+            }
+            Button("Settings...") {
+                appState.showSettings()
+            }
+            .keyboardShortcut(",", modifiers: .command)
+
+            Divider()
+
+            Button("Check for Updates...") {
+                updaterController.updater.checkForUpdates()
+            }
+            Button("Report Issue...") {
+                reportIssue()
+            }
+
+            Divider()
+
+            #if DEBUG
             Button("Open Experimental Window") {
                 openWindow(id: "experimental-notch")
             }
+            Divider()
             #endif
+
+            Button("Quit AgentGlance") {
+                NSApplication.shared.terminate(nil)
+            }
+            .keyboardShortcut("q", modifiers: .command)
         } label: {
             menuBarLabel
         }
-        .menuBarExtraStyle(.window)
+        .menuBarExtraStyle(.menu)
 
         #if DEBUG
         if #available(macOS 15.0, *) {
@@ -67,6 +97,18 @@ struct AgentGlanceApp: App {
             Image(systemName: "circle")
                 .symbolRenderingMode(.palette)
                 .foregroundStyle(.primary.opacity(0.3))
+        }
+    }
+
+    private func reportIssue() {
+        var body = """
+        **Describe the issue:**\n\n\n
+        **Steps to reproduce:**\n1. \n\n
+        **macOS version:** \(ProcessInfo.processInfo.operatingSystemVersionString)\n
+        """
+        let encoded = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        if let url = URL(string: "https://github.com/hezi/AgentGlance/issues/new?body=\(encoded)") {
+            NSWorkspace.shared.open(url)
         }
     }
 }
