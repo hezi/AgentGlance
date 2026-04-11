@@ -277,7 +277,6 @@ private struct WindowAccessor: NSViewRepresentable {
             isDragging = true
             dragStartMouseLocation = NSEvent.mouseLocation
             dragStartWindowOrigin = window.frame.origin
-            showSnapIndicators()
             installDragMonitors()
         }
 
@@ -335,6 +334,11 @@ private struct WindowAccessor: NSViewRepresentable {
             guard let screen = NSScreen.main else { return origin }
             let sf = screen.frame
             let w = window.frame.width
+
+            // Show snap indicators on first drag movement
+            if snapIndicatorWindow == nil {
+                showSnapIndicators()
+            }
 
             // Snap to default position
             let nearDefaultX = abs(currentMouse.x - snapTargetPillCenter.x) < defaultSnapDistance

@@ -198,7 +198,6 @@ final class NotchWindow: NSPanel {
         geometry.isDragging = true
         dragStartMouseLocation = NSEvent.mouseLocation
         dragStartWindowOrigin = frame.origin
-        showSnapIndicator()
         installDragMonitors()
     }
 
@@ -245,6 +244,11 @@ final class NotchWindow: NSPanel {
         let screen = targetScreen()
         let sf = screen.frame
         let w = frame.width
+
+        // Show snap indicators on first drag movement
+        if snapIndicatorWindow == nil {
+            showSnapIndicator()
+        }
 
         // Snap to default: check if the mouse is near the snap indicator (both axes)
         let nearDefaultX = abs(currentMouse.x - snapTargetPillCenter.x) < defaultSnapDistance
