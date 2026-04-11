@@ -14,6 +14,13 @@ final class NotchGeometry: ObservableObject {
 
     /// When true, the expanded content should appear above the pill instead of below.
     @Published var expandUpward = false
+
+    /// Which horizontal edge the pill is snapped to, if any. Drives expand/collapse anchor.
+    @Published var snappedEdge: HorizontalEdge = .center
+
+    enum HorizontalEdge {
+        case leading, center, trailing
+    }
 }
 
 final class NotchWindow: NSPanel {
@@ -80,6 +87,7 @@ final class NotchWindow: NSPanel {
         ) { [weak self] _ in
             self?.positionAtNotch()
         }
+
     }
 
     deinit {
@@ -121,7 +129,7 @@ final class NotchWindow: NSPanel {
         return pillWidth + 80 // 20 padding + ~20 glow each side
     }
 
-    private let windowHeight: CGFloat = 400
+    private let windowHeight: CGFloat = 900
 
     private func defaultWindowOrigin() -> NSPoint {
         let screen = targetScreen()
@@ -135,20 +143,31 @@ final class NotchWindow: NSPanel {
 
     func positionAtNotch() {
         let w = windowWidth
-        var origin = defaultWindowOrigin()
-        let offsetX = UserDefaults.standard.double(forKey: Constants.UserDefaultsKeys.pillOffsetX)
-        let offsetY = UserDefaults.standard.double(forKey: Constants.UserDefaultsKeys.pillOffsetY)
-        origin.x += offsetX
-        origin.y += offsetY
+        let h = max(frame.height, windowHeight)
+        let savedX = UserDefaults.standard.object(forKey: Constants.UserDefaultsKeys.pillOffsetX) as? Double
+        let savedPillTop = UserDefaults.standard.object(forKey: Constants.UserDefaultsKeys.pillOffsetY) as? Double
 
-        // Clamp to screen bounds — use visibleFrame so pill can't be dragged behind notch
+        var origin: NSPoint
+        if let savedX, let savedPillTop {
+            // Derive window origin from saved pill top and current height
+            origin = NSPoint(x: savedX, y: savedPillTop - h)
+        } else {
+            let screen = targetScreen()
+            origin = NSPoint(
+                x: screen.frame.midX - w / 2,
+                y: screen.visibleFrame.maxY - h
+            )
+        }
+
+        // Clamp to screen bounds
         let screen = targetScreen()
         let sf = screen.frame
         origin.x = max(sf.minX, min(origin.x, sf.maxX - w))
-        origin.y = max(sf.minY, min(origin.y, screen.visibleFrame.maxY - windowHeight))
+        origin.y = max(sf.minY, min(origin.y, screen.visibleFrame.maxY - h))
 
-        setFrame(NSRect(x: origin.x, y: origin.y, width: w, height: windowHeight), display: true)
+        setFrame(NSRect(x: origin.x, y: origin.y, width: w, height: h), display: true)
         updateExpandDirection()
+        updateSnappedEdge()
     }
 
     // MARK: - Mouse Pass-Through, Follow-Cursor & Drag
@@ -300,16 +319,28 @@ final class NotchWindow: NSPanel {
         removeDragMonitors()
         hideSnapIndicator()
 
-        let defaultOrigin = defaultWindowOrigin()
-        let currentOrigin = frame.origin
-
-        // Persist offset from default (snapping already applied during drag)
-        let offsetX = currentOrigin.x - defaultOrigin.x
-        let offsetY = currentOrigin.y - defaultOrigin.y
-        UserDefaults.standard.set(offsetX, forKey: Constants.UserDefaultsKeys.pillOffsetX)
-        UserDefaults.standard.set(offsetY, forKey: Constants.UserDefaultsKeys.pillOffsetY)
+        // Persist pill position: x is absolute, y is pill top (origin + height)
+        let pillTop = Double(frame.origin.y + frame.height)
+        UserDefaults.standard.set(Double(frame.origin.x), forKey: Constants.UserDefaultsKeys.pillOffsetX)
+        UserDefaults.standard.set(pillTop, forKey: Constants.UserDefaultsKeys.pillOffsetY)
 
         updateExpandDirection()
+        updateSnappedEdge()
+    }
+
+    private func updateSnappedEdge() {
+        let screen = targetScreen()
+        let sf = screen.frame
+        let pillLeft = frame.origin.x + pillInset
+        let pillRight = frame.origin.x + frame.width - pillInset
+
+        if abs(pillLeft - sf.minX) < 2 {
+            geometry.snappedEdge = .leading
+        } else if abs(pillRight - sf.maxX) < 2 {
+            geometry.snappedEdge = .trailing
+        } else {
+            geometry.snappedEdge = .center
+        }
     }
     
     /// Expand upward only when snapped to the bottom edge.
@@ -348,13 +379,15 @@ final class NotchWindow: NSPanel {
         indicator.ignoresMouseEvents = true
         indicator.collectionBehavior = [.canJoinAllSpaces, .stationary]
 
-        let shapeView = NSView(frame: NSRect(x: 0, y: 0, width: pillW, height: pillH))
-        shapeView.wantsLayer = true
-        shapeView.layer?.cornerRadius = pillH / 2
-        shapeView.layer?.borderWidth = 1.5
-        shapeView.layer?.borderColor = NSColor.white.withAlphaComponent(0.3).cgColor
-        shapeView.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.05).cgColor
-        indicator.contentView = shapeView
+        let liquidGlass = UserDefaults.standard.bool(forKey: Constants.UserDefaultsKeys.liquidGlass)
+        let frost = UserDefaults.standard.double(forKey: Constants.UserDefaultsKeys.glassFrost)
+        let ghostView = SnapTargetGhostView(
+            width: pillW, height: pillH,
+            useGlass: liquidGlass, frost: frost > 0 ? frost : 0.3
+        )
+        let hostingView = NSHostingView(rootView: ghostView)
+        hostingView.frame = NSRect(x: 0, y: 0, width: pillW, height: pillH)
+        indicator.contentView = hostingView
 
         indicator.alphaValue = 0
         indicator.orderFront(nil)
@@ -364,7 +397,7 @@ final class NotchWindow: NSPanel {
     private func showSnapIndicator() {
         let screen = targetScreen()
         let pillW: CGFloat = 200
-        let pillH: CGFloat = 32
+        let pillH: CGFloat = 40
         let w = frame.width
         let h = frame.height
         let sf = screen.frame
@@ -451,11 +484,11 @@ final class NotchWindow: NSPanel {
         let fadeRange: CGFloat = 200
 
         // Default indicator: mouse proximity
-        if let shapeView = snapIndicatorWindow?.contentView {
-            let center = NSPoint(x: snapIndicatorWindow!.frame.midX, y: snapIndicatorWindow!.frame.midY)
+        if let defaultIndicator = snapIndicatorWindow {
+            let center = NSPoint(x: defaultIndicator.frame.midX, y: defaultIndicator.frame.midY)
             let dist = hypot(mouse.x - center.x, mouse.y - center.y)
             let proximity = max(0, min(1, 1 - dist / fadeRange))
-            applyProximityColor(to: shapeView, proximity: proximity)
+            applyProximityColor(to: defaultIndicator, proximity: proximity)
         }
 
         // Corner indicators: proximity based on how close pill edges are to screen edges
@@ -468,24 +501,25 @@ final class NotchWindow: NSPanel {
         ]
 
         for (i, indicator) in cornerIndicatorWindows.enumerated() {
-            guard let shapeView = indicator.contentView, i < cornerProximities.count else { continue }
+            guard i < cornerProximities.count else { continue }
             let (xDist, yDist) = cornerProximities[i]
-            // Use the worse (farther) axis so both edges need to be close for full green
             let maxDist = max(xDist, yDist)
             let proximity = max(0, min(1, 1 - maxDist / fadeRange))
-            applyProximityColor(to: shapeView, proximity: proximity)
+            applyProximityColor(to: indicator, proximity: proximity)
         }
     }
 
-    private func applyProximityColor(to view: NSView, proximity: CGFloat) {
-        let borderAlpha = 0.3 + proximity * 0.5
-        let bgAlpha = 0.05 + proximity * 0.1
-        let r = 1.0 * (1 - proximity)
-        let g = 1.0
-        let b = 1.0 * (1 - proximity)
-        let blended = CGColor(red: r, green: g, blue: b, alpha: 1)
-        view.layer?.borderColor = blended.copy(alpha: borderAlpha)
-        view.layer?.backgroundColor = blended.copy(alpha: bgAlpha)
+    private func applyProximityColor(to indicator: NSWindow, proximity: CGFloat) {
+        guard let view = indicator.contentView else { return }
+        view.wantsLayer = true
+        view.layer?.borderWidth = 4
+        view.layer?.cornerRadius = 18
+        // Gray at rest, blending to green as proximity increases
+        let r = 0.5 * (1 - proximity)
+        let g = 0.5 * (1 - proximity) + proximity
+        let b = 0.5 * (1 - proximity)
+        view.layer?.borderColor = CGColor(red: r, green: g, blue: b, alpha: 0.4 + proximity * 0.4)
+        view.layer?.backgroundColor = CGColor(red: r, green: g, blue: b, alpha: 0.05 + proximity * 0.1)
     }
 
     override var canBecomeKey: Bool { true }
@@ -516,6 +550,30 @@ final class NotchWindow: NSPanel {
         super.update()
         // Re-enforce after SwiftUI view updates (it can recreate visual effect views)
         enforceActiveVibrancy()
+    }
+}
+
+// MARK: - Snap Target Ghost View
+
+/// A SwiftUI view that uses NotchBackgroundModifier to match the pill's appearance.
+private struct SnapTargetGhostView: View {
+    let width: CGFloat
+    let height: CGFloat
+    let useGlass: Bool
+    let frost: Double
+
+    var body: some View {
+        Color.clear
+            .frame(width: width, height: height)
+            .modifier(NotchBackgroundModifier(
+                cornerRadius: 18,
+                glowColor: .gray,
+                glowRadius: 4,
+                useGlass: useGlass,
+                fillColor: .gray,
+                frost: frost * 0.5
+            ))
+            .opacity(0.5)
     }
 }
 
