@@ -68,6 +68,45 @@ struct SettingsView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
+        .onAppear {
+            // Defer so the window exists
+            DispatchQueue.main.async {
+                resizeWindow(for: selectedTab)
+            }
+        }
+        .onChange(of: selectedTab) { _, tab in
+            resizeWindow(for: tab)
+        }
+    }
+
+    private func resizeWindow(for tab: SettingsTab) {
+        guard let window = NSApp.windows.first(where: { $0.title == "AgentGlance Settings" }) else { return }
+
+        let idealHeight: CGFloat = switch tab {
+        case .general: 700
+        case .appearance: 580
+        case .server: 300
+        case .permissions: 300
+        case .about: 460
+        #if DEBUG
+        case .debug: 500
+        #endif
+        }
+
+        // Cap to 80% of screen height
+        let maxHeight = (NSScreen.main?.visibleFrame.height ?? 800) * 0.8
+        let newHeight = min(idealHeight, maxHeight)
+
+        var frame = window.frame
+        // Resize from the top (adjust origin so top edge stays put)
+        frame.origin.y += frame.height - newHeight
+        frame.size.height = newHeight
+
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.25
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            window.animator().setFrame(frame, display: true)
+        }
     }
 }
 
@@ -211,6 +250,12 @@ private struct AppearancePane: View {
 
     var body: some View {
         Form {
+            Section("Preview") {
+                NotchPreview(fontScale: fontScale, fitToText: fitToText, showText: showText, liquidGlass: liquidGlass, glassFrost: glassFrost)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+            }
+
             Section("Theme") {
                 Picker("Appearance", selection: $appearanceMode) {
                     Text("System").tag("system")
@@ -248,12 +293,6 @@ private struct AppearancePane: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
             }
-
-            Section("Preview") {
-                NotchPreview(fontScale: fontScale, fitToText: fitToText, showText: showText, liquidGlass: liquidGlass, glassFrost: glassFrost, expandedWidth: expandedWidth)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 4)
-            }
         }
         .formStyle(.grouped)
     }
@@ -267,7 +306,6 @@ private struct NotchPreview: View {
     let showText: Bool
     let liquidGlass: Bool
     let glassFrost: Double
-    let expandedWidth: Double
     @Environment(\.colorScheme) private var colorScheme
 
     private var fg: Color { colorScheme == .dark ? .white : .black }
@@ -337,7 +375,7 @@ private struct NotchPreview: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 10)
         .modifier(PreviewGlassModifier(cornerRadius: 20, glowColor: .yellow, useGlass: liquidGlass, fillColor: bg, frost: glassFrost))
-        .frame(width: expandedWidth)
+        .frame(width: 340)
     }
 
     private func mockRow(name: String, detail: String, state: SessionState, time: String) -> some View {
