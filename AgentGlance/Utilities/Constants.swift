@@ -31,6 +31,8 @@ enum Constants {
         static let sessionGroupMode = "sessionGroupMode"
         static let groupSortMode = "groupSortMode"
         static let collapsedGroups = "collapsedGroups"
+        static let headerTemplate = "headerTemplate"
+        static let rowTitleTemplate = "rowTitleTemplate"
     }
 }
 

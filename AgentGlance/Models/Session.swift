@@ -71,7 +71,8 @@ final class Session: Identifiable {
     /// TodoWrite task progress across the session
     var todoProgress: TodoProgress?
 
-    var projectName: String {
+    /// Shortened CWD path only (no session name)
+    var projectPath: String {
         var path = cwd
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         if path.hasPrefix(home) {
@@ -81,10 +82,15 @@ final class Session: Identifiable {
         if path.count > maxLength {
             path = "…" + path.suffix(maxLength - 1)
         }
-        if let name {
-            return "\(path) (\(name))"
-        }
         return path
+    }
+
+    /// Shortened CWD path + session name if available
+    var projectName: String {
+        if let name {
+            return "\(projectPath) (\(name))"
+        }
+        return projectPath
     }
 
     var elapsed: TimeInterval {
