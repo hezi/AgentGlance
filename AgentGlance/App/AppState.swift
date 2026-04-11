@@ -306,7 +306,7 @@ final class AppState {
     // MARK: - Sleep Prevention
 
     private func updateSleepPrevention() {
-        if sleepPreventionEnabled && sessionManager.hasWorkingSessions {
+        if sleepPreventionEnabled {
             sleepManager.preventSleep()
         } else {
             sleepManager.allowSleep()
