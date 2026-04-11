@@ -4,6 +4,7 @@ struct NotchOverlay: View {
     var sessionManager: SessionManager
     var hookServer: HookServer
     var appState: AppState
+    var useSystemChrome: Bool = false
     @State private var isExpanded = false
     @State private var isAutoExpanded = false // held open by auto-expand, not hover
     @State private var isPinned = false
@@ -98,64 +99,91 @@ struct NotchOverlay: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            if geometry.expandUpward {
-                Spacer(minLength: 0)
-            }
+        if useSystemChrome {
+            // System chrome mode: content only, no positioning wrapper
             notchContent
-                .padding(.top, geometry.expandUpward ? 0 : 4)
-                .padding(.bottom, geometry.expandUpward ? 4 : 0)
-                .background(
-                    GeometryReader { geo in
-                        Color.clear
-                            .onAppear {
-                                geometry.pillRect = geo.frame(in: .global)
-                            }
-                            .onChange(of: geo.size) { _, _ in
-                                geometry.pillRect = geo.frame(in: .global)
-                            }
-                    }
-                )
-            if !geometry.expandUpward {
-                Spacer(minLength: 0)
+        } else {
+            VStack(spacing: 0) {
+                if geometry.expandUpward {
+                    Spacer(minLength: 0)
+                }
+                notchContent
+                    .padding(.top, geometry.expandUpward ? 0 : 4)
+                    .padding(.bottom, geometry.expandUpward ? 4 : 0)
+                    .padding(.leading, geometry.snappedEdge == .leading ? 40 : 0)
+                    .padding(.trailing, geometry.snappedEdge == .trailing ? 40 : 0)
+                    .background(
+                        GeometryReader { geo in
+                            Color.clear
+                                .onAppear {
+                                    geometry.pillRect = geo.frame(in: .global)
+                                }
+                                .onChange(of: geo.size) { _, _ in
+                                    geometry.pillRect = geo.frame(in: .global)
+                                }
+                        }
+                    )
+                if !geometry.expandUpward {
+                    Spacer(minLength: 0)
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: edgeAlignment)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+
+    private var edgeAlignment: Alignment {
+        switch geometry.snappedEdge {
+        case .leading: .leading
+        case .trailing: .trailing
+        case .center: .center
+        }
+    }
+
 
     private var notchContent: some View {
         VStack(spacing: 0) {
-            if isExpanded && geometry.expandUpward {
+            if useSystemChrome {
+                // System chrome: always show session list, no collapsed bar
                 if sessions.isEmpty {
                     emptyStateView
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
                 } else {
                     expandedDetail
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
-            }
+            } else {
+                if isExpanded && geometry.expandUpward {
+                    if sessions.isEmpty {
+                        emptyStateView
+                            .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    } else {
+                        expandedDetail
+                            .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    }
+                }
 
-            collapsedBar
+                collapsedBar
 
-            if isExpanded && !geometry.expandUpward {
-                if sessions.isEmpty {
-                    emptyStateView
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                } else {
-                    expandedDetail
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+                if isExpanded && !geometry.expandUpward {
+                    if sessions.isEmpty {
+                        emptyStateView
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                    } else {
+                        expandedDetail
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
                 }
             }
         }
-        .frame(width: isExpanded ? expandedWidth : (fitToText ? nil : notchWidth))
-        .fixedSize(horizontal: fitToText && !isExpanded, vertical: false)
+        .frame(width: useSystemChrome ? nil : (isExpanded ? expandedWidth : (fitToText ? nil : notchWidth)))
+        .frame(maxWidth: useSystemChrome ? .infinity : nil)
+        .fixedSize(horizontal: useSystemChrome ? false : (fitToText && !isExpanded), vertical: false)
         .modifier(NotchBackgroundModifier(
             cornerRadius: isExpanded ? 20 : 18,
             glowColor: stateGlow,
             glowRadius: isExpanded ? 16 : 8,
             useGlass: liquidGlass,
             fillColor: bg,
-            frost: glassFrost
+            frost: glassFrost,
+            disabled: useSystemChrome
         ))
         .contentShape(Rectangle())
         .onHover { hovering in
@@ -163,10 +191,6 @@ struct NotchOverlay: View {
             if hovering {
                 isExpanded = true
                 isAutoExpanded = false
-                // Exit keyboard nav when mouse takes over
-                if appState.isKeyboardNavActive {
-                    appState.deactivateKeyboardNav()
-                }
             } else if !isAutoExpanded && !isPinned {
                 isExpanded = false
             }
@@ -185,7 +209,6 @@ struct NotchOverlay: View {
         // The onHover handler above handles collapsing when hovering = false.
         .onChange(of: appState.isKeyboardNavActive) { _, active in
             if !active {
-                // Collapse when keyboard nav deactivates
                 isExpanded = false
                 isAutoExpanded = false
                 isPinned = false
@@ -1186,16 +1209,19 @@ private struct KeyboardNavOverlay: ViewModifier {
 
 // MARK: - Notch Background (opaque black or Liquid Glass)
 
-private struct NotchBackgroundModifier: ViewModifier {
+struct NotchBackgroundModifier: ViewModifier {
     let cornerRadius: CGFloat
     let glowColor: Color
     let glowRadius: CGFloat
     let useGlass: Bool
     var fillColor: Color = .black
     var frost: Double = 0.3
+    var disabled: Bool = false
 
     func body(content: Content) -> some View {
-        if useGlass {
+        if disabled {
+            content
+        } else if useGlass {
             if #available(macOS 26, *) {
                 content
                     .background(

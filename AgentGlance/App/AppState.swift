@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 import Combine
 import KeyboardShortcuts
+import Sparkle
 import os
 
 private let appStateLogger = Logger(subsystem: "app.agentglance", category: "AppState")
@@ -22,6 +23,7 @@ final class AppState {
         }
     }
 
+    var updater: SPUUpdater?
     private var notchWindow: NotchWindow?
     private var onboardingWindow: NSWindow?
     private var settingsWindow: NSWindow?
@@ -784,8 +786,8 @@ final class AppState {
     }
 
     func resetPillPosition() {
-        UserDefaults.standard.set(0.0, forKey: Constants.UserDefaultsKeys.pillOffsetX)
-        UserDefaults.standard.set(0.0, forKey: Constants.UserDefaultsKeys.pillOffsetY)
+        UserDefaults.standard.removeObject(forKey: Constants.UserDefaultsKeys.pillOffsetX)
+        UserDefaults.standard.removeObject(forKey: Constants.UserDefaultsKeys.pillOffsetY)
         notchWindow?.positionAtNotch()
     }
 
@@ -797,7 +799,7 @@ final class AppState {
             return
         }
 
-        let view = SettingsView(appState: self)
+        let view = SettingsView(appState: self, updater: updater)
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 580, height: 360),
             styleMask: [.titled, .closable, .resizable, .miniaturizable],
