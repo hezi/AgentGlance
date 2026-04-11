@@ -8,6 +8,12 @@ struct NotchOverlay: View {
     @State private var isExpanded = false
     @State private var isAutoExpanded = false // held open by auto-expand, not hover
     @State private var isPinned = false
+    private var headerTemplate: DisplayTemplate {
+        DisplayTemplate.load(forKey: Constants.UserDefaultsKeys.headerTemplate, default: .defaultHeader)
+    }
+    private var rowTitleTemplate: DisplayTemplate {
+        DisplayTemplate.load(forKey: Constants.UserDefaultsKeys.rowTitleTemplate, default: .defaultRowTitle)
+    }
     @AppStorage(Constants.UserDefaultsKeys.fitNotchToText) private var fitToText = false
     @AppStorage(Constants.UserDefaultsKeys.notchFontScale) private var fontScaleRaw = NotchFontScale.m.rawValue
     @AppStorage(Constants.UserDefaultsKeys.liquidGlass) private var liquidGlass = false
@@ -226,15 +232,10 @@ struct NotchOverlay: View {
                     stateIndicator(for: session)
                         .frame(width: 10, height: 10)
 
-                    Group {
-                        if sessions.count > 1, let urgent = urgentLabel {
-                            Text(urgent)
-                        } else if sessions.count > 1 {
-                            Text("\(session.projectName): \(stateText(for: session).lowercased())")
-                        } else {
-                            Text(stateText(for: session))
-                        }
-                    }
+                    Text(resolveTemplate(
+                        sessions.count > 1 ? DisplayTemplate.load(forKey: Constants.UserDefaultsKeys.headerTemplate, default: .defaultMultiSessionHeader) : headerTemplate,
+                        for: session
+                    ))
                     .font(scaledFont(size: fontScale.bodySize, weight: .medium))
                     .foregroundStyle(fg.opacity(0.8))
                     .lineLimit(1)
@@ -429,7 +430,7 @@ struct NotchOverlay: View {
                             .frame(width: 8, height: 8)
 
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(session.projectName)
+                            Text(resolveTemplate(rowTitleTemplate, for: session))
                                 .font(scaledFont(size: fontScale.bodySize, weight: .medium))
                                 .foregroundStyle(fg)
                                 .lineLimit(1)
@@ -1099,6 +1100,20 @@ struct NotchOverlay: View {
         case .ready: "Ready for next prompt"
         case .complete: "\(session.toolCount) tool calls completed"
         }
+    }
+
+    // MARK: - Template Resolution
+
+    private func resolveTemplate(_ template: DisplayTemplate, for session: Session) -> String {
+        template.resolve(
+            cwdPath: session.projectPath,
+            sessionName: session.name,
+            stateText: stateText(for: session),
+            currentTool: session.currentTool,
+            detailText: stateDetail(for: session),
+            elapsedTime: session.elapsedFormatted,
+            toolCount: session.toolCount
+        )
     }
 
     // MARK: - Layout

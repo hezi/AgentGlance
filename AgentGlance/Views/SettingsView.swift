@@ -239,6 +239,14 @@ private struct AppearancePane: View {
     @AppStorage(Constants.UserDefaultsKeys.glassFrost) private var glassFrost = 0.3
     @AppStorage(Constants.UserDefaultsKeys.expandedWidth) private var expandedWidth = 340.0
     @AppStorage(Constants.UserDefaultsKeys.appearanceMode) private var appearanceMode = "system"
+    @State private var headerTemplate = DisplayTemplate.load(
+        forKey: Constants.UserDefaultsKeys.headerTemplate,
+        default: .defaultHeader
+    )
+    @State private var rowTitleTemplate = DisplayTemplate.load(
+        forKey: Constants.UserDefaultsKeys.rowTitleTemplate,
+        default: .defaultRowTitle
+    )
 
     private var maxExpandedWidth: Double {
         Double(NSScreen.main?.frame.width ?? 1920) * 0.25
@@ -251,7 +259,7 @@ private struct AppearancePane: View {
     var body: some View {
         Form {
             Section("Preview") {
-                NotchPreview(fontScale: fontScale, fitToText: fitToText, showText: showText, liquidGlass: liquidGlass, glassFrost: glassFrost)
+                NotchPreview(fontScale: fontScale, fitToText: fitToText, showText: showText, liquidGlass: liquidGlass, glassFrost: glassFrost, headerTemplate: headerTemplate, rowTitleTemplate: rowTitleTemplate)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 4)
             }
@@ -293,6 +301,34 @@ private struct AppearancePane: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
             }
+
+            Section("Display Format") {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Header")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TokenEditorView(
+                        template: $headerTemplate,
+                        defaultTemplate: .defaultHeader
+                    )
+                    .onChange(of: headerTemplate) { _, newValue in
+                        newValue.save(forKey: Constants.UserDefaultsKeys.headerTemplate)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Session Row")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TokenEditorView(
+                        template: $rowTitleTemplate,
+                        defaultTemplate: .defaultRowTitle
+                    )
+                    .onChange(of: rowTitleTemplate) { _, newValue in
+                        newValue.save(forKey: Constants.UserDefaultsKeys.rowTitleTemplate)
+                    }
+                }
+            }
         }
         .formStyle(.grouped)
     }
@@ -306,6 +342,8 @@ private struct NotchPreview: View {
     let showText: Bool
     let liquidGlass: Bool
     let glassFrost: Double
+    var headerTemplate: DisplayTemplate = .defaultHeader
+    var rowTitleTemplate: DisplayTemplate = .defaultRowTitle
     @Environment(\.colorScheme) private var colorScheme
 
     private var fg: Color { colorScheme == .dark ? .white : .black }
@@ -338,7 +376,15 @@ private struct NotchPreview: View {
                 .frame(width: 10, height: 10)
 
             if showText {
-                Text("Running Bash...")
+                Text(headerTemplate.resolve(
+                    cwdPath: "~/Projects/MyApp",
+                    sessionName: "feature",
+                    stateText: "Running Bash...",
+                    currentTool: "Bash",
+                    detailText: "Bash — 12 tools",
+                    elapsedTime: "2m 15s",
+                    toolCount: 12
+                ))
                     .font(font(size: fontScale.bodySize, weight: .medium))
                     .foregroundStyle(fg.opacity(0.8))
                     .lineLimit(1)
@@ -355,7 +401,11 @@ private struct NotchPreview: View {
         VStack(spacing: 4) {
             // Working session
             mockRow(
-                name: "~/Projects/MyApp",
+                name: rowTitleTemplate.resolve(
+                    cwdPath: "~/Projects/MyApp", sessionName: "feature",
+                    stateText: "Running Bash...", currentTool: "Bash",
+                    detailText: "Bash — 12 tools", elapsedTime: "2m 15s", toolCount: 12
+                ),
                 detail: "Bash — 12 tools",
                 state: .working,
                 time: "2m 15s"
@@ -366,7 +416,11 @@ private struct NotchPreview: View {
 
             // Ready session
             mockRow(
-                name: "~/Projects/Backend",
+                name: rowTitleTemplate.resolve(
+                    cwdPath: "~/Projects/Backend", sessionName: nil,
+                    stateText: "Finished", currentTool: nil,
+                    detailText: "Ready for next prompt", elapsedTime: "5m 30s", toolCount: 8
+                ),
                 detail: "Ready for next prompt",
                 state: .ready,
                 time: "5m 30s"
@@ -413,7 +467,11 @@ private struct NotchPreview: View {
             HStack(spacing: 6) {
                 PulseView(color: .yellow)
                     .frame(width: 8, height: 8)
-                Text("~/Projects/MyApp")
+                Text(rowTitleTemplate.resolve(
+                    cwdPath: "~/Projects/MyApp", sessionName: "feature",
+                    stateText: "Approve Bash?", currentTool: "Bash",
+                    detailText: "Waiting for approval", elapsedTime: "1m 30s", toolCount: 5
+                ))
                     .font(font(size: fontScale.bodySize, weight: .semibold))
                     .foregroundStyle(fg)
                 Spacer()

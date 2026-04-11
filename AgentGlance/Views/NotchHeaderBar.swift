@@ -31,15 +31,7 @@ struct NotchHeaderBar: View {
                 stateIndicator(for: session)
                     .frame(width: 10, height: 10)
 
-                Group {
-                    if sessions.count > 1, let urgent = urgentLabel {
-                        Text(urgent)
-                    } else if sessions.count > 1 {
-                        Text("\(session.projectName): \(stateText(for: session).lowercased())")
-                    } else {
-                        Text(stateText(for: session))
-                    }
-                }
+                Text(resolveHeader(for: session))
                 .font(scaledFont(size: fontScale.bodySize, weight: .medium))
                 .foregroundStyle(fg.opacity(0.8))
                 .lineLimit(1)
@@ -110,6 +102,21 @@ struct NotchHeaderBar: View {
         case .ready: "Finished"
         case .complete: "Complete"
         }
+    }
+
+    private func resolveHeader(for session: Session) -> String {
+        let template: DisplayTemplate = sessions.count > 1
+            ? DisplayTemplate.load(forKey: Constants.UserDefaultsKeys.headerTemplate, default: .defaultMultiSessionHeader)
+            : DisplayTemplate.load(forKey: Constants.UserDefaultsKeys.headerTemplate, default: .defaultHeader)
+        return template.resolve(
+            cwdPath: session.projectPath,
+            sessionName: session.name,
+            stateText: stateText(for: session),
+            currentTool: session.currentTool,
+            detailText: "",
+            elapsedTime: session.elapsedFormatted,
+            toolCount: session.toolCount
+        )
     }
 
     private func scaledFont(size: CGFloat, weight: Font.Weight = .regular, design: Font.Design = .default) -> Font {
