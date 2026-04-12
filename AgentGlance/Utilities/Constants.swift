@@ -33,6 +33,7 @@ enum Constants {
         static let collapsedGroups = "collapsedGroups"
         static let headerTemplate = "headerTemplate"
         static let rowTitleTemplate = "rowTitleTemplate"
+        static let rowDetailTemplate = "rowDetailTemplate"
     }
 }
 

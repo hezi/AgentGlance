@@ -99,6 +99,7 @@ struct DisplayTemplate: Codable, Equatable {
     static let defaultHeader = DisplayTemplate(format: "{cwd} ({name}): {state}")
     static let defaultMultiSessionHeader = DisplayTemplate(format: "{cwd} ({name}): {state}")
     static let defaultRowTitle = DisplayTemplate(format: "{cwd} ({name})")
+    static let defaultRowDetail = DisplayTemplate(format: "{detail}")
 
     // MARK: - Persistence
 

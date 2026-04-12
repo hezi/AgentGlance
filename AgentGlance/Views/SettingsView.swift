@@ -247,6 +247,10 @@ private struct AppearancePane: View {
         forKey: Constants.UserDefaultsKeys.rowTitleTemplate,
         default: .defaultRowTitle
     )
+    @State private var rowDetailTemplate = DisplayTemplate.load(
+        forKey: Constants.UserDefaultsKeys.rowDetailTemplate,
+        default: .defaultRowDetail
+    )
 
     private var maxExpandedWidth: Double {
         Double(NSScreen.main?.frame.width ?? 1920) * 0.25
@@ -259,7 +263,7 @@ private struct AppearancePane: View {
     var body: some View {
         Form {
             Section("Preview") {
-                NotchPreview(fontScale: fontScale, fitToText: fitToText, showText: showText, liquidGlass: liquidGlass, glassFrost: glassFrost, headerTemplate: headerTemplate, rowTitleTemplate: rowTitleTemplate)
+                NotchPreview(fontScale: fontScale, fitToText: fitToText, showText: showText, liquidGlass: liquidGlass, glassFrost: glassFrost, headerTemplate: headerTemplate, rowTitleTemplate: rowTitleTemplate, rowDetailTemplate: rowDetailTemplate)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 4)
             }
@@ -328,6 +332,19 @@ private struct AppearancePane: View {
                         newValue.save(forKey: Constants.UserDefaultsKeys.rowTitleTemplate)
                     }
                 }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Session Detail")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TokenEditorView(
+                        template: $rowDetailTemplate,
+                        defaultTemplate: .defaultRowDetail
+                    )
+                    .onChange(of: rowDetailTemplate) { _, newValue in
+                        newValue.save(forKey: Constants.UserDefaultsKeys.rowDetailTemplate)
+                    }
+                }
             }
         }
         .formStyle(.grouped)
@@ -344,6 +361,7 @@ private struct NotchPreview: View {
     let glassFrost: Double
     var headerTemplate: DisplayTemplate = .defaultHeader
     var rowTitleTemplate: DisplayTemplate = .defaultRowTitle
+    var rowDetailTemplate: DisplayTemplate = .defaultRowDetail
     @Environment(\.colorScheme) private var colorScheme
 
     private var fg: Color { colorScheme == .dark ? .white : .black }
@@ -406,7 +424,11 @@ private struct NotchPreview: View {
                     stateText: "Running Bash...", currentTool: "Bash",
                     detailText: "Bash — 12 tools", elapsedTime: "2m 15s", toolCount: 12
                 ),
-                detail: "Bash — 12 tools",
+                detail: rowDetailTemplate.resolve(
+                    cwdPath: "~/Projects/MyApp", sessionName: "feature",
+                    stateText: "Running Bash...", currentTool: "Bash",
+                    detailText: "Bash — 12 tools", elapsedTime: "2m 15s", toolCount: 12
+                ),
                 state: .working,
                 time: "2m 15s"
             )
@@ -421,7 +443,11 @@ private struct NotchPreview: View {
                     stateText: "Finished", currentTool: nil,
                     detailText: "Ready for next prompt", elapsedTime: "5m 30s", toolCount: 8
                 ),
-                detail: "Ready for next prompt",
+                detail: rowDetailTemplate.resolve(
+                    cwdPath: "~/Projects/Backend", sessionName: nil,
+                    stateText: "Finished", currentTool: nil,
+                    detailText: "Ready for next prompt", elapsedTime: "5m 30s", toolCount: 8
+                ),
                 state: .ready,
                 time: "5m 30s"
             )
