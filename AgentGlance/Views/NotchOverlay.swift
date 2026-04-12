@@ -14,6 +14,9 @@ struct NotchOverlay: View {
     private var rowTitleTemplate: DisplayTemplate {
         DisplayTemplate.load(forKey: Constants.UserDefaultsKeys.rowTitleTemplate, default: .defaultRowTitle)
     }
+    private var rowDetailTemplate: DisplayTemplate {
+        DisplayTemplate.load(forKey: Constants.UserDefaultsKeys.rowDetailTemplate, default: .defaultRowDetail)
+    }
     @AppStorage(Constants.UserDefaultsKeys.fitNotchToText) private var fitToText = false
     @AppStorage(Constants.UserDefaultsKeys.notchFontScale) private var fontScaleRaw = NotchFontScale.m.rawValue
     @AppStorage(Constants.UserDefaultsKeys.liquidGlass) private var liquidGlass = false
@@ -441,10 +444,13 @@ struct NotchOverlay: View {
                                     .lineLimit(1)
                             }
 
-                            Text(stateDetail(for: session))
-                                .font(scaledFont(size: fontScale.detailSize))
-                                .foregroundStyle(fg.opacity(0.45))
-                                .lineLimit(1)
+                            let detailText = resolveTemplate(rowDetailTemplate, for: session)
+                            if !detailText.isEmpty {
+                                Text(detailText)
+                                    .font(scaledFont(size: fontScale.detailSize))
+                                    .foregroundStyle(fg.opacity(0.45))
+                                    .lineLimit(1)
+                            }
                         }
 
                         Spacer()
@@ -746,7 +752,7 @@ struct NotchOverlay: View {
 
                 if index == 0 {
                     Button { TerminalActivator.activate(session: session) } label: {
-                        Text(session.projectName)
+                        Text(resolveTemplate(rowTitleTemplate, for: session))
                             .font(scaledFont(size: fontScale.bodySize, weight: .semibold))
                             .foregroundStyle(fg)
                     }
@@ -800,7 +806,7 @@ struct NotchOverlay: View {
                     PulseView(color: .yellow)
                         .frame(width: 8, height: 8)
 
-                    Text(session.projectName)
+                    Text(resolveTemplate(rowTitleTemplate, for: session))
                         .font(scaledFont(size: fontScale.bodySize, weight: .semibold))
                         .foregroundStyle(fg)
 
@@ -873,7 +879,7 @@ struct NotchOverlay: View {
                         .font(scaledFont(size: fontScale.detailSize))
                         .foregroundStyle(.blue)
 
-                    Text(session.projectName)
+                    Text(resolveTemplate(rowTitleTemplate, for: session))
                         .font(scaledFont(size: fontScale.bodySize, weight: .semibold))
                         .foregroundStyle(fg)
 
@@ -1325,7 +1331,18 @@ struct QuestionRowView: View {
                         .font(font(size: fontScale.monoSize))
                         .foregroundStyle(.blue)
 
-                    Text(session.projectName)
+                    Text(DisplayTemplate.load(forKey: Constants.UserDefaultsKeys.rowTitleTemplate, default: .defaultRowTitle).resolve(
+                        cwdPath: session.projectPath,
+                        sessionName: session.name,
+                        stateText: "Question",
+                        currentTool: session.currentTool,
+                        detailText: "",
+                        elapsedTime: session.elapsedFormatted,
+                        toolCount: session.toolCount,
+                        modelName: session.modelName,
+                        inputTokens: session.inputTokens,
+                        outputTokens: session.outputTokens
+                    ))
                         .font(font(size: fontScale.bodySize, weight: .semibold))
                         .foregroundStyle(fg)
 
