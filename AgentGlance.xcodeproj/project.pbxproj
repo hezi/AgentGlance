@@ -45,7 +45,7 @@
 		A10023 /* EditDiffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10023 /* EditDiffView.swift */; };
 		A10024 /* HookConfigWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10024 /* HookConfigWatcher.swift */; };
 		A10025 /* SessionGrouping.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10025 /* SessionGrouping.swift */; };
-		A10026 /* ExperimentalNotchWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10026 /* ExperimentalNotchWindow.swift */; };
+		A10026 /* SystemChromeWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10026 /* SystemChromeWindow.swift */; };
 		A10027 /* NotchHeaderBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10027 /* NotchHeaderBar.swift */; };
 		A10028 /* DisplayTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10028 /* DisplayTemplate.swift */; };
 		A10029 /* TokenEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10029 /* TokenEditorView.swift */; };
@@ -79,7 +79,7 @@
 		B10023 /* EditDiffView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditDiffView.swift; sourceTree = "<group>"; };
 		B10024 /* HookConfigWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HookConfigWatcher.swift; sourceTree = "<group>"; };
 		B10025 /* SessionGrouping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionGrouping.swift; sourceTree = "<group>"; };
-		B10026 /* ExperimentalNotchWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentalNotchWindow.swift; sourceTree = "<group>"; };
+		B10026 /* SystemChromeWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemChromeWindow.swift; sourceTree = "<group>"; };
 		B10027 /* NotchHeaderBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchHeaderBar.swift; sourceTree = "<group>"; };
 		B10028 /* DisplayTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayTemplate.swift; sourceTree = "<group>"; };
 		B10029 /* TokenEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenEditorView.swift; sourceTree = "<group>"; };
@@ -169,7 +169,7 @@
 			isa = PBXGroup;
 			children = (
 				B10010 /* NotchOverlay.swift */,
-				B10026 /* ExperimentalNotchWindow.swift */,
+				B10026 /* SystemChromeWindow.swift */,
 				B10027 /* NotchHeaderBar.swift */,
 				B10029 /* TokenEditorView.swift */,
 				B10011 /* MenuBarView.swift */,
@@ -337,7 +337,7 @@
 				A10008 /* SleepManager.swift in Sources */,
 				A10009 /* NotificationManager.swift in Sources */,
 				A10010 /* NotchOverlay.swift in Sources */,
-				A10026 /* ExperimentalNotchWindow.swift in Sources */,
+				A10026 /* SystemChromeWindow.swift in Sources */,
 				A10027 /* NotchHeaderBar.swift in Sources */,
 				A10028 /* DisplayTemplate.swift in Sources */,
 				A10029 /* TokenEditorView.swift in Sources */,

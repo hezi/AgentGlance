@@ -1,16 +1,16 @@
 import SwiftUI
 
-// MARK: - Experimental SwiftUI-managed window for the notch overlay
+// MARK: - SystemChrome SwiftUI-managed window for the notch overlay
 // Uses a real macOS window with the NotchHeaderBar as a centered toolbar
 // and NotchOverlay content below.
 
 @available(macOS 15.0, *)
-struct ExperimentalNotchScene: Scene {
+struct SystemChromeNotchScene: Scene {
     var appState: AppState
 
     var body: some Scene {
-        WindowGroup(id: "experimental-notch") {
-            ExperimentalNotchContent(appState: appState)
+        WindowGroup(id: "system-chrome-notch") {
+            SystemChromeNotchContent(appState: appState)
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
@@ -20,7 +20,7 @@ struct ExperimentalNotchScene: Scene {
 }
 
 @available(macOS 15.0, *)
-private struct ExperimentalNotchContent: View {
+private struct SystemChromeNotchContent: View {
     var appState: AppState
     @StateObject private var geometry = NotchGeometry()
     @AppStorage(Constants.UserDefaultsKeys.notchFontScale) private var fontScaleRaw = NotchFontScale.m.rawValue
@@ -139,14 +139,14 @@ private struct ExperimentalNotchContent: View {
     }
 
     private func isMouseOnResizeHandle() -> Bool {
-        guard let window = NSApp.windows.first(where: { $0.identifier?.rawValue.contains("experimental") == true }) else { return false }
+        guard let window = NSApp.windows.first(where: { $0.identifier?.rawValue.contains("system-chrome") == true }) else { return false }
         let mouseInWindow = window.mouseLocationOutsideOfEventStream
         // Bottom 6pt of the window is the resize handle zone
         return mouseInWindow.y < 6
     }
 
     private func expandWindow() {
-        guard let window = NSApp.windows.first(where: { $0.identifier?.rawValue.contains("experimental") == true }) else { return }
+        guard let window = NSApp.windows.first(where: { $0.identifier?.rawValue.contains("system-chrome") == true }) else { return }
         isAnimating = true
         isExpanded = true
         var frame = window.frame
@@ -162,7 +162,7 @@ private struct ExperimentalNotchContent: View {
     }
 
     private func collapseWindow() {
-        guard let window = NSApp.windows.first(where: { $0.identifier?.rawValue.contains("experimental") == true }) else { return }
+        guard let window = NSApp.windows.first(where: { $0.identifier?.rawValue.contains("system-chrome") == true }) else { return }
         isAnimating = true
         isExpanded = false
         let newHeight = fontScale.barHeight
@@ -207,7 +207,7 @@ private struct WindowAccessor: NSViewRepresentable {
             titleBarHeight = window.frame.height - window.contentLayoutRect.height
 
             // Restore saved frame
-            if let data = UserDefaults.standard.data(forKey: "experimentalWindowFrame"),
+            if let data = UserDefaults.standard.data(forKey: "systemChromeWindowFrame"),
                let rect = try? JSONDecoder().decode(CodableRect.self, from: data) {
                 window.setFrame(rect.nsRect, display: true)
                 if rect.nsRect.height > barHeight {
@@ -521,7 +521,7 @@ private struct WindowAccessor: NSViewRepresentable {
         private func saveFrame(_ window: NSWindow) {
             let rect = CodableRect(nsRect: window.frame)
             if let data = try? JSONEncoder().encode(rect) {
-                UserDefaults.standard.set(data, forKey: "experimentalWindowFrame")
+                UserDefaults.standard.set(data, forKey: "systemChromeWindowFrame")
             }
         }
     }
