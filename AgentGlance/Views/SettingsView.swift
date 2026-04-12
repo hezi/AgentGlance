@@ -124,11 +124,19 @@ private struct GeneralPane: View {
     @AppStorage(Constants.UserDefaultsKeys.keyboardNavMode) private var navMode = KeyboardNavMode.arrows.rawValue
     @AppStorage(Constants.UserDefaultsKeys.sessionGroupMode) private var groupModeRaw = SessionGroupMode.none.rawValue
     @AppStorage(Constants.UserDefaultsKeys.groupSortMode) private var sortModeRaw = GroupSortMode.lastUpdated.rawValue
+    @AppStorage(Constants.UserDefaultsKeys.windowMode) private var windowMode = "classic"
     @State private var launchAtLogin = false
 
     var body: some View {
         Form {
             Section("Display") {
+                Picker("Window mode", selection: $windowMode) {
+                    Text("Classic (Notch Overlay)").tag("classic")
+                    Text("System Chrome").tag("systemChrome")
+                }
+                .onChange(of: windowMode) { _, _ in
+                    appState.refreshNotchWindow()
+                }
                 Picker("Show notch on", selection: $screenMode) {
                     Text("Main Screen").tag("mainScreen")
                     Text("Follow Cursor").tag("followCursor")

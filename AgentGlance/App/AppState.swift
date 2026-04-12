@@ -324,6 +324,17 @@ final class AppState {
     }
 
     private func createNotchWindow() {
+        let mode = UserDefaults.standard.string(forKey: Constants.UserDefaultsKeys.windowMode) ?? "classic"
+        guard mode == "classic" else {
+            // System chrome mode: the SwiftUI WindowGroup scene handles the window
+            notchWindow?.close()
+            notchWindow = nil
+            // Delay to ensure the SwiftUI scene is ready to receive
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                NotificationCenter.default.post(name: .openSystemChromeWindow, object: nil)
+            }
+            return
+        }
         // Always close the old window first — NSPanels stay visible
         // even after dropping the reference until explicitly closed.
         notchWindow?.close()

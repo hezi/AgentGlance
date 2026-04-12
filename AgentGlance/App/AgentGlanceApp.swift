@@ -47,13 +47,6 @@ struct AgentGlanceApp: App {
 
             Divider()
 
-            #if DEBUG
-            Button("Open Experimental Window") {
-                openWindow(id: "experimental-notch")
-            }
-            Divider()
-            #endif
-
             Button("Quit AgentGlance") {
                 NSApplication.shared.terminate(nil)
             }
@@ -63,17 +56,29 @@ struct AgentGlanceApp: App {
         }
         .menuBarExtraStyle(.menu)
 
-        #if DEBUG
         if #available(macOS 15.0, *) {
-            ExperimentalNotchScene(appState: appState)
+            SystemChromeNotchScene(appState: appState)
         }
-        #endif
     }
 
     @ViewBuilder
     private var menuBarLabel: some View {
         let state = appState.sessionManager.activeSessions.first?.state
 
+        menuBarIcon(for: state)
+            .onReceive(NotificationCenter.default.publisher(for: .openSystemChromeWindow)) { _ in
+                // Only open if no system chrome window exists yet
+                let alreadyOpen = NSApp.windows.contains { $0.identifier?.rawValue.contains("system-chrome") == true && $0.isVisible }
+                if !alreadyOpen {
+                    if #available(macOS 15.0, *) {
+                        openWindow(id: "system-chrome-notch")
+                    }
+                }
+            }
+    }
+
+    @ViewBuilder
+    private func menuBarIcon(for state: SessionState?) -> some View {
         switch state {
         case .working:
             MenuBarPulse()
@@ -111,6 +116,10 @@ struct AgentGlanceApp: App {
             NSWorkspace.shared.open(url)
         }
     }
+}
+
+extension Notification.Name {
+    static let openSystemChromeWindow = Notification.Name("openSystemChromeWindow")
 }
 
 /// Gentle pulsing dot for the menu bar working state.

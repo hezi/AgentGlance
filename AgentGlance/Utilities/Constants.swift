@@ -34,6 +34,7 @@ enum Constants {
         static let headerTemplate = "headerTemplate"
         static let rowTitleTemplate = "rowTitleTemplate"
         static let rowDetailTemplate = "rowDetailTemplate"
+        static let windowMode = "windowMode"
     }
 }
 
