@@ -49,6 +49,7 @@
 		A10027 /* NotchHeaderBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10027 /* NotchHeaderBar.swift */; };
 		A10028 /* DisplayTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10028 /* DisplayTemplate.swift */; };
 		A10029 /* TokenEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10029 /* TokenEditorView.swift */; };
+		A10030 /* TranscriptReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10030 /* TranscriptReader.swift */; };
 		D57154A02F86BA370083195F /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = D571549F2F86BA370083195F /* Sparkle */; };
 /* End PBXBuildFile section */
 
@@ -82,6 +83,7 @@
 		B10027 /* NotchHeaderBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchHeaderBar.swift; sourceTree = "<group>"; };
 		B10028 /* DisplayTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayTemplate.swift; sourceTree = "<group>"; };
 		B10029 /* TokenEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenEditorView.swift; sourceTree = "<group>"; };
+		B10030 /* TranscriptReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptReader.swift; sourceTree = "<group>"; };
 		P10001 /* AgentGlance.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AgentGlance.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -155,6 +157,7 @@
 				B10007 /* SessionManager.swift */,
 				B10008 /* SleepManager.swift */,
 				B10009 /* NotificationManager.swift */,
+				B10030 /* TranscriptReader.swift */,
 				B10019 /* ProcessScanner.swift */,
 				B10020 /* TerminalActivator.swift */,
 				B10024 /* HookConfigWatcher.swift */,
@@ -338,6 +341,7 @@
 				A10027 /* NotchHeaderBar.swift in Sources */,
 				A10028 /* DisplayTemplate.swift in Sources */,
 				A10029 /* TokenEditorView.swift in Sources */,
+				A10030 /* TranscriptReader.swift in Sources */,
 				A10011 /* MenuBarView.swift in Sources */,
 				A10012 /* SettingsView.swift in Sources */,
 				A10013 /* OnboardingView.swift in Sources */,

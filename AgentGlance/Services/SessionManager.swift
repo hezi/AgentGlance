@@ -135,6 +135,7 @@ final class SessionManager {
             if let mode = event.permission_mode { existing.permissionMode = mode }
             if let name = event.session_name, !name.isEmpty { existing.name = name }
             applyBridgeEnrichment(session: existing, event: event)
+            refreshTranscriptData(for: existing)
             return existing
         }
 
@@ -608,5 +609,21 @@ final class SessionManager {
     private func cancelCleanup(for sessionId: String) {
         cleanupTimers[sessionId]?.invalidate()
         cleanupTimers.removeValue(forKey: sessionId)
+    }
+
+    // MARK: - Transcript Data
+
+    private func refreshTranscriptData(for session: Session) {
+        let sessionId = session.id
+        let cwd = session.cwd
+        DispatchQueue.global(qos: .utility).async {
+            guard let usage = TranscriptReader.readUsage(sessionId: sessionId, cwd: cwd) else { return }
+            DispatchQueue.main.async { [weak self] in
+                guard let session = self?.sessions[sessionId] else { return }
+                session.modelName = usage.modelName
+                session.inputTokens = usage.inputTokens
+                session.outputTokens = usage.outputTokens
+            }
+        }
     }
 }

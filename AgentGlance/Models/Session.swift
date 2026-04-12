@@ -71,6 +71,14 @@ final class Session: Identifiable {
     /// TodoWrite task progress across the session
     var todoProgress: TodoProgress?
 
+    /// Model name from JSONL transcript (e.g. "claude-opus-4-6")
+    var modelName: String?
+
+    /// Cumulative token usage from JSONL transcript
+    var inputTokens: Int = 0
+    var outputTokens: Int = 0
+    var totalTokens: Int { inputTokens + outputTokens }
+
     /// Shortened CWD path only (no session name)
     var projectPath: String {
         var path = cwd

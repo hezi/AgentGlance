@@ -10,6 +10,10 @@ enum DisplayToken: String, CaseIterable, Identifiable {
     case detail
     case time
     case tools_count
+    case model
+    case input_tokens
+    case output_tokens
+    case total_tokens
 
     var id: String { rawValue }
     var label: String { "{\(rawValue)}" }
@@ -23,6 +27,10 @@ enum DisplayToken: String, CaseIterable, Identifiable {
         case .detail: "Detail"
         case .time: "Time"
         case .tools_count: "Tool Count"
+        case .model: "Model"
+        case .input_tokens: "Input Tokens"
+        case .output_tokens: "Output Tokens"
+        case .total_tokens: "Total Tokens"
         }
     }
 
@@ -53,7 +61,10 @@ struct DisplayTemplate: Codable, Equatable {
         currentTool: String?,
         detailText: String,
         elapsedTime: String,
-        toolCount: Int
+        toolCount: Int,
+        modelName: String? = nil,
+        inputTokens: Int = 0,
+        outputTokens: Int = 0
     ) -> String {
         var result = format
         result = result.replacingOccurrences(of: DisplayToken.cwd.label, with: cwdPath)
@@ -63,11 +74,24 @@ struct DisplayTemplate: Codable, Equatable {
         result = result.replacingOccurrences(of: DisplayToken.detail.label, with: detailText)
         result = result.replacingOccurrences(of: DisplayToken.time.label, with: elapsedTime)
         result = result.replacingOccurrences(of: DisplayToken.tools_count.label, with: "\(toolCount)")
+        result = result.replacingOccurrences(of: DisplayToken.model.label, with: modelName ?? "")
+        result = result.replacingOccurrences(of: DisplayToken.input_tokens.label, with: formatTokenCount(inputTokens))
+        result = result.replacingOccurrences(of: DisplayToken.output_tokens.label, with: formatTokenCount(outputTokens))
+        result = result.replacingOccurrences(of: DisplayToken.total_tokens.label, with: formatTokenCount(inputTokens + outputTokens))
         // Clean up artifacts from empty tokens (e.g. " ()" when name is nil)
         result = result.replacingOccurrences(of: " ()", with: "")
         result = result.replacingOccurrences(of: "()", with: "")
         result = result.replacingOccurrences(of: "  ", with: " ")
         return result.trimmingCharacters(in: .whitespaces)
+    }
+
+    private func formatTokenCount(_ count: Int) -> String {
+        if count >= 1_000_000 {
+            return String(format: "%.1fM", Double(count) / 1_000_000)
+        } else if count >= 1_000 {
+            return String(format: "%.1fK", Double(count) / 1_000)
+        }
+        return "\(count)"
     }
 
     // MARK: - Defaults
