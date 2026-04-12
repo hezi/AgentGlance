@@ -324,7 +324,7 @@ final class AppState {
     }
 
     private func createNotchWindow() {
-        let mode = UserDefaults.standard.string(forKey: Constants.UserDefaultsKeys.windowMode) ?? "classic"
+        let mode = UserDefaults.standard.string(forKey: Constants.UserDefaultsKeys.windowMode) ?? "systemChrome"
         guard mode == "classic" else {
             // System chrome mode: the SwiftUI WindowGroup scene handles the window
             notchWindow?.close()

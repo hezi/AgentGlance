@@ -124,7 +124,7 @@ private struct GeneralPane: View {
     @AppStorage(Constants.UserDefaultsKeys.keyboardNavMode) private var navMode = KeyboardNavMode.arrows.rawValue
     @AppStorage(Constants.UserDefaultsKeys.sessionGroupMode) private var groupModeRaw = SessionGroupMode.none.rawValue
     @AppStorage(Constants.UserDefaultsKeys.groupSortMode) private var sortModeRaw = GroupSortMode.lastUpdated.rawValue
-    @AppStorage(Constants.UserDefaultsKeys.windowMode) private var windowMode = "classic"
+    @AppStorage(Constants.UserDefaultsKeys.windowMode) private var windowMode = "systemChrome"
     @State private var launchAtLogin = false
 
     var body: some View {
