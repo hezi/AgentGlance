@@ -31,10 +31,13 @@ struct NotchHeaderBar: View {
                 stateIndicator(for: session)
                     .frame(width: 10, height: 10)
 
-                Text(resolveHeader(for: session))
-                .font(scaledFont(size: fontScale.bodySize, weight: .medium))
-                .foregroundStyle(fg.opacity(0.8))
-                .lineLimit(1)
+                let headerText = resolveHeader(for: session)
+                if !headerText.isEmpty {
+                    Text(headerText)
+                        .font(scaledFont(size: fontScale.bodySize, weight: .medium))
+                        .foregroundStyle(fg.opacity(0.8))
+                        .lineLimit(1)
+                }
             } else {
                 Image(systemName: "terminal")
                     .font(scaledFont(size: fontScale.detailSize))
@@ -115,7 +118,10 @@ struct NotchHeaderBar: View {
             currentTool: session.currentTool,
             detailText: "",
             elapsedTime: session.elapsedFormatted,
-            toolCount: session.toolCount
+            toolCount: session.toolCount,
+            modelName: session.modelName,
+            inputTokens: session.inputTokens,
+            outputTokens: session.outputTokens
         )
     }
 

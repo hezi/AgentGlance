@@ -232,13 +232,16 @@ struct NotchOverlay: View {
                     stateIndicator(for: session)
                         .frame(width: 10, height: 10)
 
-                    Text(resolveTemplate(
+                    let headerText = resolveTemplate(
                         sessions.count > 1 ? DisplayTemplate.load(forKey: Constants.UserDefaultsKeys.headerTemplate, default: .defaultMultiSessionHeader) : headerTemplate,
                         for: session
-                    ))
-                    .font(scaledFont(size: fontScale.bodySize, weight: .medium))
-                    .foregroundStyle(fg.opacity(0.8))
-                    .lineLimit(1)
+                    )
+                    if !headerText.isEmpty {
+                        Text(headerText)
+                            .font(scaledFont(size: fontScale.bodySize, weight: .medium))
+                            .foregroundStyle(fg.opacity(0.8))
+                            .lineLimit(1)
+                    }
                 } else {
                     Image(systemName: "terminal")
                         .font(scaledFont(size: fontScale.detailSize))
@@ -430,10 +433,13 @@ struct NotchOverlay: View {
                             .frame(width: 8, height: 8)
 
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(resolveTemplate(rowTitleTemplate, for: session))
-                                .font(scaledFont(size: fontScale.bodySize, weight: .medium))
-                                .foregroundStyle(fg)
-                                .lineLimit(1)
+                            let rowTitle = resolveTemplate(rowTitleTemplate, for: session)
+                            if !rowTitle.isEmpty {
+                                Text(rowTitle)
+                                    .font(scaledFont(size: fontScale.bodySize, weight: .medium))
+                                    .foregroundStyle(fg)
+                                    .lineLimit(1)
+                            }
 
                             Text(stateDetail(for: session))
                                 .font(scaledFont(size: fontScale.detailSize))
@@ -1112,7 +1118,10 @@ struct NotchOverlay: View {
             currentTool: session.currentTool,
             detailText: stateDetail(for: session),
             elapsedTime: session.elapsedFormatted,
-            toolCount: session.toolCount
+            toolCount: session.toolCount,
+            modelName: session.modelName,
+            inputTokens: session.inputTokens,
+            outputTokens: session.outputTokens
         )
     }
 
