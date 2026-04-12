@@ -192,7 +192,7 @@ private struct WindowAccessor: NSViewRepresentable {
     var barHeight: CGFloat
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(expandedHeight: $expandedHeight, isResizing: $isResizing, isAnimating: $isAnimating)
+        Coordinator(expandedHeight: $expandedHeight, isResizing: $isResizing, isAnimating: $isAnimating, barHeight: barHeight)
     }
 
     func makeNSView(context: Context) -> NSView {
@@ -210,7 +210,9 @@ private struct WindowAccessor: NSViewRepresentable {
             if let data = UserDefaults.standard.data(forKey: "experimentalWindowFrame"),
                let rect = try? JSONDecoder().decode(CodableRect.self, from: data) {
                 window.setFrame(rect.nsRect, display: true)
-                expandedHeight = rect.nsRect.height
+                if rect.nsRect.height > barHeight {
+                    expandedHeight = rect.nsRect.height
+                }
                 isExpanded = rect.nsRect.height > barHeight
             }
 
@@ -225,6 +227,7 @@ private struct WindowAccessor: NSViewRepresentable {
         @Binding var expandedHeight: CGFloat
         @Binding var isResizing: Bool
         @Binding var isAnimating: Bool
+        let barHeight: CGFloat
 
         // Drag & snap state
         private weak var window: NSWindow?
@@ -244,10 +247,11 @@ private struct WindowAccessor: NSViewRepresentable {
         private let edgeSnapDistance: CGFloat = 40
         private let defaultSnapDistance: CGFloat = 40
 
-        init(expandedHeight: Binding<CGFloat>, isResizing: Binding<Bool>, isAnimating: Binding<Bool>) {
+        init(expandedHeight: Binding<CGFloat>, isResizing: Binding<Bool>, isAnimating: Binding<Bool>, barHeight: CGFloat) {
             _expandedHeight = expandedHeight
             _isResizing = isResizing
             _isAnimating = isAnimating
+            self.barHeight = barHeight
         }
 
         func observeWindow(_ window: NSWindow) {
@@ -507,8 +511,11 @@ private struct WindowAccessor: NSViewRepresentable {
             guard let window = notification.object as? NSWindow else { return }
             guard !isAnimating else { return }
             isResizing = false
-            expandedHeight = window.frame.height
-            saveFrame(window)
+            // Don't save collapsed height as expanded target
+            if window.frame.height > barHeight {
+                expandedHeight = window.frame.height
+                saveFrame(window)
+            }
         }
 
         private func saveFrame(_ window: NSWindow) {
