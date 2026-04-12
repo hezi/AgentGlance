@@ -401,6 +401,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 8;
+				DEVELOPMENT_TEAM = X92GSK5YW2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AgentGlance/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = AgentGlance;
@@ -459,6 +460,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 8;
+				DEVELOPMENT_TEAM = X92GSK5YW2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AgentGlance/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = AgentGlance;
