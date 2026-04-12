@@ -37,7 +37,7 @@ struct TokenEditorView: View {
                 }
             }
 
-            HStack(spacing: 4) {
+            TokenFlowLayout(spacing: 4) {
                 ForEach(DisplayToken.allCases) { token in
                     Button {
                         template.format += token.label
@@ -45,6 +45,7 @@ struct TokenEditorView: View {
                         Text(token.displayLabel)
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(.white)
+                            .fixedSize()
                             .padding(.horizontal, 5)
                             .padding(.vertical, 1)
                             .background(
@@ -56,6 +57,39 @@ struct TokenEditorView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Flow Layout
+
+private struct TokenFlowLayout: Layout {
+    let spacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        layout(subviews: subviews, maxWidth: proposal.width ?? .infinity).size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let result = layout(subviews: subviews, maxWidth: bounds.width)
+        for (i, pos) in result.positions.enumerated() where i < subviews.count {
+            subviews[i].place(at: CGPoint(x: bounds.minX + pos.x, y: bounds.minY + pos.y), proposal: .unspecified)
+        }
+    }
+
+    private func layout(subviews: Subviews, maxWidth: CGFloat) -> (size: CGSize, positions: [CGPoint]) {
+        var positions: [CGPoint] = []
+        var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0, maxX: CGFloat = 0
+        for sub in subviews {
+            let size = sub.sizeThatFits(.unspecified)
+            if x + size.width > maxWidth && x > 0 {
+                x = 0; y += rowHeight + spacing; rowHeight = 0
+            }
+            positions.append(CGPoint(x: x, y: y))
+            rowHeight = max(rowHeight, size.height)
+            x += size.width + spacing
+            maxX = max(maxX, x)
+        }
+        return (CGSize(width: maxX, height: y + rowHeight), positions)
     }
 }
 
