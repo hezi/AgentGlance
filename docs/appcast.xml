@@ -11,6 +11,21 @@
             <sparkle:version>8</sparkle:version>
             <sparkle:shortVersionString>1.4.0</sparkle:shortVersionString>
             <sparkle:releaseNotesLink>https://agentglance.app/releasenotes/1.4.0.html</sparkle:releaseNotesLink>
+            <pubDate>Sun, 12 Apr 2026 13:03:12 +0100</pubDate>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure
+                url="https://github.com/hezi/AgentGlance/releases/download/v1.4.0/AgentGlance-v1.4.0.zip"
+                length="2645627"
+                type="application/octet-stream"
+                sparkle:edSignature="gSdne61YaUoTcXsli/l78mzONxjalSpfxwmbPLH3UZiPFz6pAkviLGQLvsXXwKQxX33SeY47oAF06xXJuPnjCQ=="
+            />
+        </item>
+
+        <item>
+            <title>Version 1.4.0</title>
+            <sparkle:version>8</sparkle:version>
+            <sparkle:shortVersionString>1.4.0</sparkle:shortVersionString>
+            <sparkle:releaseNotesLink>https://agentglance.app/releasenotes/1.4.0.html</sparkle:releaseNotesLink>
             <pubDate>Sun, 12 Apr 2026 12:57:44 +0100</pubDate>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure
