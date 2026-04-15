@@ -10,6 +10,7 @@ enum Constants {
         static let port = "hookServerPort"
         static let sleepPreventionEnabled = "sleepPreventionEnabled"
         static let soundEnabled = "soundEnabled"
+        static let osNotificationsEnabled = "osNotificationsEnabled"
         static let showTextInNotch = "showTextInNotch"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
         static let autoExpandOnApproval = "autoExpandOnApproval"

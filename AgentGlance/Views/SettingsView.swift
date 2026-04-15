@@ -116,6 +116,7 @@ private struct GeneralPane: View {
     @Bindable var appState: AppState
     @AppStorage(Constants.UserDefaultsKeys.sleepPreventionEnabled) private var sleepPrevention = true
     @AppStorage(Constants.UserDefaultsKeys.soundEnabled) private var soundEnabled = true
+    @AppStorage(Constants.UserDefaultsKeys.osNotificationsEnabled) private var osNotificationsEnabled = true
     @AppStorage(Constants.UserDefaultsKeys.autoExpandOnApproval) private var autoExpand = false
     @AppStorage(Constants.UserDefaultsKeys.suppressExpansionWhenInTerminal) private var suppressInTerminal = false
     @AppStorage(Constants.UserDefaultsKeys.showAllApprovals) private var showAllApprovals = false
@@ -181,6 +182,7 @@ private struct GeneralPane: View {
                     .onChange(of: sleepPrevention) { _, newValue in
                         appState.sleepPreventionEnabled = newValue
                     }
+                Toggle("Show system notifications", isOn: $osNotificationsEnabled)
                 Toggle("Play sound on notifications", isOn: $soundEnabled)
                 Toggle("Auto-expand notch on approval requests", isOn: $autoExpand)
                 if autoExpand {

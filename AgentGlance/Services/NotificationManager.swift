@@ -12,7 +12,16 @@ final class NotificationManager: NSObject {
     override init() {
         super.init()
         center.delegate = self
-        requestPermission()
+        if UserDefaults.standard.object(forKey: Constants.UserDefaultsKeys.osNotificationsEnabled) == nil {
+            UserDefaults.standard.set(true, forKey: Constants.UserDefaultsKeys.osNotificationsEnabled)
+        }
+        if UserDefaults.standard.bool(forKey: Constants.UserDefaultsKeys.osNotificationsEnabled) {
+            requestPermission()
+        }
+    }
+
+    private var osNotificationsEnabled: Bool {
+        UserDefaults.standard.bool(forKey: Constants.UserDefaultsKeys.osNotificationsEnabled)
     }
 
     private func requestPermission() {
@@ -26,6 +35,7 @@ final class NotificationManager: NSObject {
     }
 
     func notifyAwaitingApproval(session: Session) {
+        guard osNotificationsEnabled else { return }
         let content = UNMutableNotificationContent()
         content.title = "Claude Code — \(session.projectName)"
 
@@ -47,6 +57,7 @@ final class NotificationManager: NSObject {
     }
 
     func notifyReady(session: Session) {
+        guard osNotificationsEnabled else { return }
         let content = UNMutableNotificationContent()
         content.title = "Claude Code"
         content.body = "'\(session.projectName)' finished — ready for next prompt"
@@ -63,6 +74,7 @@ final class NotificationManager: NSObject {
     }
 
     func notifyComplete(session: Session) {
+        guard osNotificationsEnabled else { return }
         let content = UNMutableNotificationContent()
         content.title = "Claude Code"
         content.body = "Task complete in '\(session.projectName)' — \(session.toolCount) tool calls"
