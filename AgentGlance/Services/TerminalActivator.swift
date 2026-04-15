@@ -162,6 +162,23 @@ enum TerminalActivator {
     private static var ghosttyTTYCache: [String: Int] = [:]  // tty → tab index (1-based)
     private static var ghosttyCacheTabCount: Int = 0
     private static var ghosttyCacheTime: Date = .distantPast
+    /// Serializes all reads/writes of the Ghostty cache so prewarm and activation can't race.
+    private static let ghosttyCacheQueue = DispatchQueue(label: "app.agentglance.ghostty-cache")
+    private static let ghosttyCacheTTL: TimeInterval = 30
+
+    /// Rebuild the Ghostty TTY→tab cache in the background if it's stale.
+    /// Safe to call from any thread; early-exits when Ghostty isn't running or the cache is fresh.
+    static func prewarmGhosttyIfNeeded() {
+        guard NSRunningApplication.runningApplications(
+            withBundleIdentifier: "com.mitchellh.ghostty"
+        ).first != nil else { return }
+
+        ghosttyCacheQueue.async {
+            if Date().timeIntervalSince(ghosttyCacheTime) < ghosttyCacheTTL { return }
+            logger.info("Ghostty TTY cache: prewarming")
+            rebuildGhosttyTTYCache()
+        }
+    }
 
     private static func activateGhostty(session: Session) {
         // Strategy: find the Ghostty tab index that owns this session's TTY,
@@ -282,16 +299,15 @@ enum TerminalActivator {
     /// Resolve which Ghostty tab (1-based index in AppleScript iteration order) owns the target TTY.
     /// Queries AppleScript for tab name+cwd per tab, then correlates with process tree info.
     private static func resolveGhosttyTabByTTY(targetTTY: String) -> Int? {
-        // Check cache first (valid for 30 seconds)
-        let cacheAge = Date().timeIntervalSince(ghosttyCacheTime)
-        if cacheAge < 30, let cached = ghosttyTTYCache[targetTTY] {
-            logger.info("Ghostty TTY resolve: cache hit → tab \(cached) (age: \(Int(cacheAge))s)")
-            return cached
+        ghosttyCacheQueue.sync {
+            let cacheAge = Date().timeIntervalSince(ghosttyCacheTime)
+            if cacheAge < ghosttyCacheTTL, let cached = ghosttyTTYCache[targetTTY] {
+                logger.info("Ghostty TTY resolve: cache hit → tab \(cached) (age: \(Int(cacheAge))s)")
+                return cached
+            }
+            rebuildGhosttyTTYCache()
+            return ghosttyTTYCache[targetTTY]
         }
-
-        // Cache miss or stale — rebuild
-        rebuildGhosttyTTYCache()
-        return ghosttyTTYCache[targetTTY]
     }
 
     private static func rebuildGhosttyTTYCache() {

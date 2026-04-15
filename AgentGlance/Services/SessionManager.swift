@@ -89,6 +89,8 @@ final class SessionManager {
         if !detected.isEmpty {
             onStateChange?(detected.compactMap { sessions[$0.sessionId] }.first!, .idle)
         }
+
+        TerminalActivator.prewarmGhosttyIfNeeded()
     }
 
     func handleEvent(_ event: HookPayload) {
@@ -181,6 +183,9 @@ final class SessionManager {
         if let termProgram = event._ag_term_program, session.terminalBundleId == nil {
             session.terminalBundleId = Self.bundleIdForTermProgram(termProgram)
             changed = true
+            if session.terminalBundleId == "com.mitchellh.ghostty" {
+                TerminalActivator.prewarmGhosttyIfNeeded()
+            }
         }
         if changed {
             persistSessionTerminals()
@@ -265,6 +270,8 @@ final class SessionManager {
             sessions[id] = session
             logger.info("Restored session from disk: \(session.name ?? id.prefix(8).description) tty=\(session.tty ?? "?")")
         }
+
+        TerminalActivator.prewarmGhosttyIfNeeded()
     }
 
     private func handleSessionStart(_ event: HookPayload) {
@@ -578,9 +585,18 @@ final class SessionManager {
                     transition(session, to: .complete)
                     scheduleCleanup(for: id)
                 }
-            } else if session.state == .idle || session.state == .ready {
-                // No PID and no recent activity — likely a ghost session
-                let staleAge: TimeInterval = 120
+            } else {
+                // No PID — likely a ghost session. Active states get more grace time
+                // since Claude may be working without us having resolved a PID yet.
+                let staleAge: TimeInterval
+                switch session.state {
+                case .working, .awaitingApproval:
+                    staleAge = 300   // 5 minutes
+                case .idle, .ready:
+                    staleAge = 120   // 2 minutes
+                case .complete:
+                    staleAge = 0     // unreachable (filtered by outer `where`)
+                }
                 if Date().timeIntervalSince(session.lastActivity) > staleAge {
                     logger.info("Session \(session.name ?? id.prefix(8).description) has no PID and is stale — marking complete")
                     session.pendingToolSummary = nil
