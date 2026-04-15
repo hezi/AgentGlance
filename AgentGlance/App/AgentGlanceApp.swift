@@ -97,11 +97,11 @@ struct AgentGlanceApp: App {
         case .idle:
             Image(systemName: "circle")
                 .symbolRenderingMode(.palette)
-                .foregroundStyle(.primary.opacity(0.5))
+                .foregroundStyle(.primary)
         case nil:
             Image(systemName: "circle")
                 .symbolRenderingMode(.palette)
-                .foregroundStyle(.primary.opacity(0.3))
+                .foregroundStyle(.primary.opacity(0.85))
         }
     }
 
