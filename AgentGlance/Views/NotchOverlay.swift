@@ -267,6 +267,7 @@ struct NotchOverlay: View {
                             .rotationEffect(.degrees(isPinned ? 0 : 45))
                     }
                     .buttonStyle(.plain)
+                    .help(isPinned ? "Unpin overlay" : "Pin overlay open")
 
                     Spacer()
 
@@ -280,6 +281,7 @@ struct NotchOverlay: View {
                             .foregroundStyle(fg.opacity(0.35))
                     }
                     .buttonStyle(.plain)
+                    .help("Open Settings")
                 }
             }
         }
