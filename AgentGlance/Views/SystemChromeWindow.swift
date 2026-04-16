@@ -35,6 +35,8 @@ private struct SystemChromeNotchContent: View {
     @State private var expandedHeight: CGFloat = 200
     @State private var isResizing = false
     @State private var isAnimating = false
+    @State private var isDragging = false
+    @State private var collapseTask: Task<Void, Never>?
     @AppStorage(Constants.UserDefaultsKeys.liquidGlass) private var liquidGlass = false
     @AppStorage(Constants.UserDefaultsKeys.glassFrost) private var glassFrost = 0.3
     @AppStorage(Constants.UserDefaultsKeys.appearanceMode) private var appearanceMode = "system"
@@ -113,13 +115,33 @@ private struct SystemChromeNotchContent: View {
                alignment: .top)
         .contentShape(Rectangle())
         .onHover { hovering in
-            guard !isResizing, !isAnimating else { return }
+            guard !isResizing, !isAnimating, !isDragging else { return }
             // Ignore hover events when mouse is near the resize handle (only when expanded)
             if hovering && isExpanded && isMouseOnResizeHandle() { return }
             if hovering {
+                collapseTask?.cancel()
+                collapseTask = nil
                 expandWindow()
             } else if !isPinned {
-                collapseWindow()
+                // Delay collapse so the user can grab resize handles
+                collapseTask?.cancel()
+                collapseTask = Task {
+                    try? await Task.sleep(for: .milliseconds(300))
+                    guard !Task.isCancelled else { return }
+                    collapseWindow()
+                }
+            }
+        }
+        .onChange(of: isResizing) { _, resizing in
+            if resizing {
+                collapseTask?.cancel()
+                collapseTask = nil
+            }
+        }
+        .onChange(of: isDragging) { _, dragging in
+            if dragging {
+                collapseTask?.cancel()
+                collapseTask = nil
             }
         }
         .clipped()
@@ -133,6 +155,7 @@ private struct SystemChromeNotchContent: View {
             isResizing: $isResizing,
             isAnimating: $isAnimating,
             isExpanded: $isExpanded,
+            isDragging: $isDragging,
             barHeight: fontScale.barHeight
         ))
         .preferredColorScheme(preferredScheme)
@@ -189,10 +212,11 @@ private struct WindowAccessor: NSViewRepresentable {
     @Binding var isResizing: Bool
     @Binding var isAnimating: Bool
     @Binding var isExpanded: Bool
+    @Binding var isDragging: Bool
     var barHeight: CGFloat
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(expandedHeight: $expandedHeight, isResizing: $isResizing, isAnimating: $isAnimating, barHeight: barHeight)
+        Coordinator(expandedHeight: $expandedHeight, isResizing: $isResizing, isAnimating: $isAnimating, isDragging: $isDragging, barHeight: barHeight)
     }
 
     func makeNSView(context: Context) -> NSView {
@@ -227,11 +251,11 @@ private struct WindowAccessor: NSViewRepresentable {
         @Binding var expandedHeight: CGFloat
         @Binding var isResizing: Bool
         @Binding var isAnimating: Bool
+        @Binding var isDragging: Bool
         let barHeight: CGFloat
 
         // Drag & snap state
         private weak var window: NSWindow?
-        private var isDragging = false
         private var dragStartMouseLocation: NSPoint = .zero
         private var dragStartWindowOrigin: NSPoint = .zero
         private var dragMonitor: Any?
@@ -247,10 +271,11 @@ private struct WindowAccessor: NSViewRepresentable {
         private let edgeSnapDistance: CGFloat = 40
         private let defaultSnapDistance: CGFloat = 40
 
-        init(expandedHeight: Binding<CGFloat>, isResizing: Binding<Bool>, isAnimating: Binding<Bool>, barHeight: CGFloat) {
+        init(expandedHeight: Binding<CGFloat>, isResizing: Binding<Bool>, isAnimating: Binding<Bool>, isDragging: Binding<Bool>, barHeight: CGFloat) {
             _expandedHeight = expandedHeight
             _isResizing = isResizing
             _isAnimating = isAnimating
+            _isDragging = isDragging
             self.barHeight = barHeight
         }
 
@@ -290,6 +315,12 @@ private struct WindowAccessor: NSViewRepresentable {
             installDragMonitors()
         }
 
+        private func handleDrag() {
+            guard isDragging, let window else { return }
+            let origin = draggedOrigin()
+            window.setFrameOrigin(origin)
+        }
+
         private func installDragMonitors() {
             dragMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDragged) { [weak self] event in
                 self?.handleDrag()
@@ -305,12 +336,6 @@ private struct WindowAccessor: NSViewRepresentable {
             globalDragUpMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseUp) { [weak self] _ in
                 self?.finishDrag()
             }
-        }
-
-        private func handleDrag() {
-            guard isDragging, let window else { return }
-            let origin = draggedOrigin()
-            window.setFrameOrigin(origin)
         }
 
         private func finishDrag() {

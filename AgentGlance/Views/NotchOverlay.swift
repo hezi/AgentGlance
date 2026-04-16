@@ -548,6 +548,10 @@ struct NotchOverlay: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) {
+            TerminalActivator.activate(session: session)
+        }
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(fg.opacity(0.06))
