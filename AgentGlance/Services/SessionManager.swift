@@ -15,10 +15,10 @@ final class SessionManager {
     /// AppState wires this to HookServer to flush stale pending decisions.
     var onStalePendingDecisions: ((String) -> Void)?
 
-    /// When true, only show sessions with "ss-" prefix IDs (screenshot test sessions)
+    /// When true, only show sessions with "test-" prefix IDs (test sessions)
     var screenshotMode = false
 
-    private static let screenshotPrefix = "ss-"
+    private static let screenshotPrefix = "test-"
 
     var activeSessions: [Session] {
         sessions.values

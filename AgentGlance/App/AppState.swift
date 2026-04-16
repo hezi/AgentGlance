@@ -430,7 +430,7 @@ final class AppState {
     }
 
     func sendTestQuestion() {
-        let session = TestSession.codex
+        let session = TestSession.claude
         let toolInput: JSONValue = .object([
             "questions": .array([
                 .object([
@@ -465,7 +465,7 @@ final class AppState {
     }
 
     func sendTestPlanReview() {
-        let session = TestSession.gemini
+        let session = TestSession.claude
         let payload = HookPayload(
             session_id: session.id,
             cwd: session.cwd,
@@ -495,11 +495,11 @@ final class AppState {
     /// Tweet 1: Hero shot — multiple sessions showing new UI features
     func screenshotHero() {
         // Session 1: Thinking state with user prompt
-        let s1 = TestSession(id: "ss-thinking", cwd: "/Users/demo/checkout-api", name: "checkout-api")
+        let s1 = TestSession(id: "test-thinking", cwd: "/Users/demo/checkout-api", name: "checkout-api")
         sessionManager.handleEvent(HookPayload(session_id: s1.id, cwd: s1.cwd, hook_event_name: "UserPromptSubmit", tool_input: .object(["prompt": .string("Refactor the auth middleware to use refresh tokens")]), permission_mode: "plan", session_name: s1.name))
 
         // Session 2: Running tool with todo progress
-        let s2 = TestSession(id: "ss-working", cwd: "/Users/demo/dashboard", name: "web")
+        let s2 = TestSession(id: "test-working", cwd: "/Users/demo/dashboard", name: "web")
         sessionManager.handleEvent(HookPayload(session_id: s2.id, cwd: s2.cwd, hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: .object(["command": .string("npm run test:integration")]), permission_mode: "auto", session_name: s2.name))
         if let s = sessionManager.sessions[s2.id] {
             s.todoProgress = TodoProgress(completed: 4, inProgress: 1, open: 2)
@@ -508,7 +508,7 @@ final class AppState {
         }
 
         // Session 3: Finished with completion card
-        let s3 = TestSession(id: "ss-ready", cwd: "/Users/demo/mobile-app", name: "mobile-app")
+        let s3 = TestSession(id: "test-ready", cwd: "/Users/demo/mobile-app", name: "mobile-app")
         sessionManager.handleEvent(HookPayload(session_id: s3.id, cwd: s3.cwd, hook_event_name: "SessionStart", session_name: s3.name))
         sessionManager.handleEvent(HookPayload(session_id: s3.id, cwd: s3.cwd, hook_event_name: "Stop", last_assistant_message: "Fixed the token refresh flow. Updated middleware.ts to call refreshToken() instead of getToken(), added retry logic for network errors, and updated 3 test files to cover the new edge cases."))
         if let s = sessionManager.sessions[s3.id] { s.toolCount = 12 }
@@ -516,7 +516,7 @@ final class AppState {
 
     /// Tweet 4: Edit diff in approval card
     func screenshotEditDiff() {
-        let session = TestSession(id: "ss-diff", cwd: "/Users/demo/checkout-api", name: "checkout-api")
+        let session = TestSession(id: "test-diff", cwd: "/Users/demo/checkout-api", name: "checkout-api")
         let toolInput: JSONValue = .object([
             "file_path": .string("/Users/demo/checkout-api/src/auth/middleware.ts"),
             "old_string": .string("const token = getToken()\nif (!token) {\n    return res.status(401).json({ error: \"unauthorized\" })\n}"),
@@ -528,13 +528,13 @@ final class AppState {
 
     /// Tweet 5: Three spinner states side by side (run sequentially, screenshot each)
     func screenshotThinkingState() {
-        let session = TestSession(id: "ss-states", cwd: "/Users/demo/checkout-api", name: "checkout-api")
+        let session = TestSession(id: "test-states", cwd: "/Users/demo/checkout-api", name: "checkout-api")
         sessionManager.handleEvent(HookPayload(session_id: session.id, cwd: session.cwd, hook_event_name: "UserPromptSubmit", tool_input: .object(["prompt": .string("Add rate limiting to the API endpoints")]), session_name: session.name))
         // Now showing cyan "Thinking..." spinner
     }
 
     func screenshotRunningState() {
-        if let s = sessionManager.sessions["ss-states"] {
+        if let s = sessionManager.sessions["test-states"] {
             s.workingDetail = .runningTool
             s.currentTool = "Bash"
             s.pendingToolSummary = "npm run test"
@@ -544,7 +544,7 @@ final class AppState {
     }
 
     func screenshotCompactingState() {
-        if let s = sessionManager.sessions["ss-states"] {
+        if let s = sessionManager.sessions["test-states"] {
             s.workingDetail = .compacting
             s.currentTool = nil
             s.pendingToolSummary = nil
@@ -555,7 +555,7 @@ final class AppState {
     /// Tweet 6: Completion card + todo progress
     func screenshotCompletionAndTodos() {
         // Session with todo progress
-        let s1 = TestSession(id: "ss-todo", cwd: "/Users/demo/dashboard", name: "web")
+        let s1 = TestSession(id: "test-todo", cwd: "/Users/demo/dashboard", name: "web")
         sessionManager.handleEvent(HookPayload(session_id: s1.id, cwd: s1.cwd, hook_event_name: "PreToolUse", tool_name: "Edit", tool_input: .object(["file_path": .string("src/theme.css")]), permission_mode: "auto", session_name: s1.name))
         if let s = sessionManager.sessions[s1.id] {
             s.todoProgress = TodoProgress(completed: 3, inProgress: 1, open: 2)
@@ -564,7 +564,7 @@ final class AppState {
         }
 
         // Session with completion card
-        let s2 = TestSession(id: "ss-complete", cwd: "/Users/demo/checkout-api", name: "checkout-api")
+        let s2 = TestSession(id: "test-complete", cwd: "/Users/demo/checkout-api", name: "checkout-api")
         sessionManager.handleEvent(HookPayload(session_id: s2.id, cwd: s2.cwd, hook_event_name: "SessionStart", session_name: s2.name))
         sessionManager.handleEvent(HookPayload(session_id: s2.id, cwd: s2.cwd, hook_event_name: "Stop", last_assistant_message: "Added dark mode support.\n\n• Created CSS custom properties for light/dark themes\n• Added prefers-color-scheme media query\n• Updated 3 components to use theme variables\n• Added toggle in settings panel"))
         if let s = sessionManager.sessions[s2.id] { s.toolCount = 9 }
