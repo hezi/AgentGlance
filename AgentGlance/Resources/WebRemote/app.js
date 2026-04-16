@@ -13,6 +13,7 @@
   let wsMessageCount = 0;
   let pollCount = 0;
   const debugLabel = document.getElementById('debug-label');
+  const debugMode = new URLSearchParams(window.location.search).has('debug');
 
   // --- DOM refs ---
   const pairingScreen = document.getElementById('pairing-screen');
@@ -194,6 +195,8 @@
     pairingScreen.hidden = false;
     mainScreen.hidden = true;
     loadingState.hidden = true;
+    // Clear old code and focus first input
+    Array.from(codeInputsEl.children).forEach(function (input) { input.value = ''; });
     if (codeInputsEl.children.length > 0) {
       codeInputsEl.children[0].focus();
     }
@@ -549,6 +552,7 @@
   }
 
   function updateDebugLabel() {
+    if (!debugMode) return;
     var source = wsMessageCount > 0 ? 'ws' : (pollCount > 0 ? 'poll' : '...');
     debugLabel.textContent = source + ' r:' + renderCount + ' ws:' + wsMessageCount + ' poll:' + pollCount;
   }
@@ -1120,11 +1124,14 @@
   });
 
   disconnectBtn.addEventListener('click', function () {
-    // Close WS, clear token, show pairing
+    // Notify server to revoke token, then close WS
     if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
-    if (ws) { ws.onclose = null; ws.onerror = null; ws.close(); ws = null; }
+    if (ws) {
+      try { ws.send(JSON.stringify({ type: 'unpair' })); } catch (e) {}
+      ws.onclose = null; ws.onerror = null; ws.close(); ws = null;
+    }
     localStorage.removeItem(TOKEN_KEY);
-    releaseWakeLock();
+    disableKeepScreenOn();
     sessions = {};
     initialLoadDone = false;
     settingsPanel.hidden = true;

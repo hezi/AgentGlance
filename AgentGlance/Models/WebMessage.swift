@@ -165,5 +165,6 @@ struct ClientMessage: Decodable {
         case approvePlan
         case rejectPlan
         case ping
+        case unpair
     }
 }

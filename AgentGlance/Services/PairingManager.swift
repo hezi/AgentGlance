@@ -159,6 +159,12 @@ final class PairingManager {
         logger.info("Revoked device '\(device.deviceName)'")
     }
 
+    func revokeToken(_ token: String) {
+        tokens.removeAll(where: { $0.token == token })
+        saveTokens()
+        logger.info("Device unpaired via web remote")
+    }
+
     func revokeAll() {
         tokens.removeAll()
         saveTokens()

@@ -397,6 +397,11 @@ final class WebRemoteServer {
             return
         }
         if message.type == .auth { return }
+        if message.type == .unpair {
+            pairingManager.revokeToken(client.token)
+            removeClient(client)
+            return
+        }
 
         processClientAction(message)
     }
@@ -404,7 +409,7 @@ final class WebRemoteServer {
     /// Dispatch a client action to the hook server. Used by both WS and HTTP paths.
     private func processClientAction(_ message: ClientMessage) {
         switch message.type {
-        case .auth, .ping:
+        case .auth, .ping, .unpair:
             break
         case .allow:
             guard let sessionId = message.sessionId else { return }
