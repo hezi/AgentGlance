@@ -5,6 +5,7 @@ enum Constants {
     static let socketPath = "/tmp/agentglance.sock"
     static let completeFadeDelay: TimeInterval = 8.0
     static let sessionTimeoutInterval: TimeInterval = 300 // 5 minutes no activity = stale
+    static let webRemotePort: UInt16 = 7484
 
     enum UserDefaultsKeys {
         static let port = "hookServerPort"
@@ -36,6 +37,7 @@ enum Constants {
         static let rowTitleTemplate = "rowTitleTemplate"
         static let rowDetailTemplate = "rowDetailTemplate"
         static let windowMode = "windowMode"
+        static let localRemoteEnabled = "localRemoteEnabled"
     }
 }
 

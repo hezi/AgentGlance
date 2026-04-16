@@ -4,7 +4,7 @@ import KeyboardShortcuts
 import Sparkle
 
 enum SettingsTab: String, CaseIterable, Identifiable {
-    case general, appearance, server, permissions, about
+    case general, appearance, server, remote, permissions, about
     #if DEBUG
     case debug
     #endif
@@ -16,6 +16,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .general: "General"
         case .appearance: "Appearance"
         case .server: "Integrations"
+        case .remote: "Remote"
         case .permissions: "Permissions"
         case .about: "About"
         #if DEBUG
@@ -29,6 +30,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .general: "gear"
         case .appearance: "textformat.size"
         case .server: "network"
+        case .remote: "iphone"
         case .permissions: "lock.shield"
         case .about: "info.circle"
         #if DEBUG
@@ -59,6 +61,7 @@ struct SettingsView: View {
                 case .general: GeneralPane(appState: appState)
                 case .appearance: AppearancePane()
                 case .server: ServerPane(appState: appState)
+                case .remote: RemotePane(appState: appState)
                 case .permissions: PermissionsPane()
                 case .about: AboutPane(updater: updater)
                 #if DEBUG
@@ -86,6 +89,7 @@ struct SettingsView: View {
         case .general: 700
         case .appearance: 580
         case .server: 300
+        case .remote: 500
         case .permissions: 300
         case .about: 460
         #if DEBUG
@@ -674,6 +678,186 @@ private struct ServerPane: View {
         .onAppear {
             portText = String(port)
         }
+    }
+}
+
+// MARK: - Remote
+
+private struct RemotePane: View {
+    @Bindable var appState: AppState
+    @AppStorage(Constants.UserDefaultsKeys.localRemoteEnabled) private var localRemoteEnabled = false
+    @State private var addresses: [(label: String, url: String)] = []
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Enable mobile remote access", isOn: $localRemoteEnabled)
+                    .onChange(of: localRemoteEnabled) { _, newValue in
+                        appState.toggleWebRemote(enabled: newValue)
+                        if newValue {
+                            if appState.pairingManager.currentCode == nil {
+                                appState.pairingManager.generatePairCode()
+                            }
+                            refreshAddresses()
+                        } else {
+                            appState.pairingManager.stopCodeTimer()
+                        }
+                    }
+                if !localRemoteEnabled {
+                    Text("Access your sessions and approve permissions from your phone over the local network or Tailscale.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    LabeledContent("Status") {
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(appState.webRemoteServer != nil ? .green : .red)
+                                .frame(width: 8, height: 8)
+                            Text(verbatim: appState.webRemoteServer != nil
+                                 ? "Running on port \(Constants.webRemotePort)"
+                                 : "Not running")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+
+            if localRemoteEnabled {
+                Section("Pairing") {
+                    if let code = appState.pairingManager.currentCode {
+                        HStack(spacing: 12) {
+                            Text(code)
+                                .font(.system(size: 32, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.primary)
+                                .textSelection(.enabled)
+
+                            Spacer()
+
+                            // Countdown ring
+                            ZStack {
+                                Circle()
+                                    .stroke(.secondary.opacity(0.2), lineWidth: 3)
+                                Circle()
+                                    .trim(from: 0, to: CGFloat(appState.pairingManager.codeSecondsRemaining) / CGFloat(PairingManager.codeLifetime))
+                                    .stroke(.blue, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                                    .rotationEffect(.degrees(-90))
+                                    .animation(.linear(duration: 1), value: appState.pairingManager.codeSecondsRemaining)
+                                Text("\(appState.pairingManager.codeSecondsRemaining)")
+                                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(width: 36, height: 36)
+                        }
+                        .padding(.vertical, 4)
+                    }
+
+                    Text("Enter this code on your phone to pair. A new code is generated automatically.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("Reachable Addresses") {
+                    if addresses.isEmpty {
+                        Text("No network interfaces found")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(addresses, id: \.url) { addr in
+                            HStack(spacing: 6) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(addr.label)
+                                        .font(.subheadline)
+                                    Text(addr.url)
+                                        .font(.system(size: 12, design: .monospaced))
+                                        .foregroundStyle(.secondary)
+                                        .textSelection(.enabled)
+                                }
+
+                                Spacer()
+
+                                ShareLink(item: URL(string: addr.url)!) {
+                                    Image(systemName: "square.and.arrow.up")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(.secondary)
+                                }
+                                .buttonStyle(.plain)
+                                .help("Share this address")
+                            }
+                        }
+                    }
+
+                    Button("Refresh") {
+                        refreshAddresses()
+                    }
+                    .controlSize(.small)
+                }
+
+                Section("Paired Devices") {
+                    let devices = appState.pairingManager.pairedDevices
+                    if devices.isEmpty {
+                        Text("No paired devices")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(devices) { device in
+                            HStack(spacing: 8) {
+                                Image(systemName: deviceIcon(device.deviceName))
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 20)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(device.deviceName)
+                                        .font(.subheadline.weight(.medium))
+                                    Text("Last used \(device.lastUsed, style: .relative) ago")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Spacer()
+
+                                Button {
+                                    appState.pairingManager.revokeDevice(device)
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(.secondary.opacity(0.6))
+                                }
+                                .buttonStyle(.plain)
+                                .help("Revoke this device")
+                            }
+                        }
+
+                        Button("Revoke All") {
+                            appState.pairingManager.revokeAll()
+                        }
+                        .foregroundStyle(.red)
+                        .controlSize(.small)
+                    }
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .onAppear {
+            if localRemoteEnabled {
+                if appState.pairingManager.currentCode == nil {
+                    appState.pairingManager.generatePairCode()
+                }
+                refreshAddresses()
+            }
+        }
+    }
+
+    private func refreshAddresses() {
+        addresses = WebRemoteServer.reachableAddresses(port: Constants.webRemotePort)
+    }
+
+    private func deviceIcon(_ name: String) -> String {
+        let n = name.lowercased()
+        if n.contains("iphone") { return "iphone" }
+        if n.contains("ipad") { return "ipad" }
+        if n.contains("android") { return "smartphone" }
+        if n.contains("mac") { return "laptopcomputer" }
+        if n.contains("windows") || n.contains("linux") { return "desktopcomputer" }
+        return "globe"
     }
 }
 

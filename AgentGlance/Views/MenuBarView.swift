@@ -51,6 +51,11 @@ struct MenuBarView: View {
             Divider()
 
             serverStatus
+
+            if let server = appState.webRemoteServer, server.isRunning {
+                webRemoteStatus
+            }
+
             Divider()
 
             // Native-style menu items
@@ -465,6 +470,34 @@ struct MenuBarView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
+    }
+
+    // MARK: - Web Remote Status
+
+    private var webRemoteStatus: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "iphone")
+                .font(.system(size: 10))
+                .foregroundStyle(.blue)
+
+            Text("Remote on :\(Constants.webRemotePort)")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+
+            Spacer()
+
+            if let code = appState.pairingManager.currentCode {
+                Text(code)
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.blue)
+
+                Text("\(appState.pairingManager.codeSecondsRemaining)s")
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 4)
     }
 
     // MARK: - Helpers

@@ -56,6 +56,19 @@ enum HTTPParser {
         return Data(response.utf8)
     }
 
+    /// Check if an HTTP request is a WebSocket upgrade
+    static func isWebSocketUpgrade(_ request: HTTPRequest) -> Bool {
+        request.headers["upgrade"]?.lowercased() == "websocket"
+    }
+
+    /// Build a generic HTTP response with arbitrary status, content type, and body
+    static func buildHTTPResponse(status: Int, statusText: String = "OK", contentType: String, body: Data) -> Data {
+        let header = "HTTP/1.1 \(status) \(statusText)\r\nContent-Type: \(contentType)\r\nContent-Length: \(body.count)\r\nConnection: close\r\n\r\n"
+        var response = Data(header.utf8)
+        response.append(body)
+        return response
+    }
+
     private static func findHeaderEnd(in data: Data) -> Int? {
         let separator: [UInt8] = [0x0D, 0x0A, 0x0D, 0x0A] // \r\n\r\n
         let bytes = [UInt8](data)

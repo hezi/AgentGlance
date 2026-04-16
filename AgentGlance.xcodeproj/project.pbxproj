@@ -50,6 +50,11 @@
 		A10028 /* DisplayTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10028 /* DisplayTemplate.swift */; };
 		A10029 /* TokenEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10029 /* TokenEditorView.swift */; };
 		A10030 /* TranscriptReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10030 /* TranscriptReader.swift */; };
+		A10031 /* WebMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10031 /* WebMessage.swift */; };
+		A10032 /* WebSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10032 /* WebSession.swift */; };
+		A10033 /* PairingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10033 /* PairingManager.swift */; };
+		A10034 /* WebRemoteServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10034 /* WebRemoteServer.swift */; };
+		A10035 /* WebRemote in Resources */ = {isa = PBXBuildFile; fileRef = B10035 /* WebRemote */; };
 		D57154A02F86BA370083195F /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = D571549F2F86BA370083195F /* Sparkle */; };
 /* End PBXBuildFile section */
 
@@ -84,6 +89,11 @@
 		B10028 /* DisplayTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayTemplate.swift; sourceTree = "<group>"; };
 		B10029 /* TokenEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenEditorView.swift; sourceTree = "<group>"; };
 		B10030 /* TranscriptReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptReader.swift; sourceTree = "<group>"; };
+		B10031 /* WebMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebMessage.swift; sourceTree = "<group>"; };
+		B10032 /* WebSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSession.swift; sourceTree = "<group>"; };
+		B10033 /* PairingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingManager.swift; sourceTree = "<group>"; };
+		B10034 /* WebRemoteServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRemoteServer.swift; sourceTree = "<group>"; };
+		B10035 /* WebRemote */ = {isa = PBXFileReference; lastKnownFileType = folder; path = WebRemote; sourceTree = "<group>"; };
 		P10001 /* AgentGlance.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AgentGlance.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -138,6 +148,8 @@
 				B10003 /* HookEvent.swift */,
 				B10004 /* Session.swift */,
 				B10028 /* DisplayTemplate.swift */,
+				B10031 /* WebMessage.swift */,
+				B10032 /* WebSession.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -147,6 +159,7 @@
 			children = (
 				B10005 /* HookServer.swift */,
 				B10006 /* HTTPParser.swift */,
+				B10034 /* WebRemoteServer.swift */,
 			);
 			path = Server;
 			sourceTree = "<group>";
@@ -161,6 +174,7 @@
 				B10019 /* ProcessScanner.swift */,
 				B10020 /* TerminalActivator.swift */,
 				B10024 /* HookConfigWatcher.swift */,
+				B10033 /* PairingManager.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -205,6 +219,7 @@
 			children = (
 				B10016 /* Assets.xcassets */,
 				B10017 /* Info.plist */,
+				B10035 /* WebRemote */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -281,6 +296,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10016 /* Assets.xcassets in Resources */,
+				A10035 /* WebRemote in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -354,6 +370,10 @@
 				A10023 /* EditDiffView.swift in Sources */,
 				A10024 /* HookConfigWatcher.swift in Sources */,
 				A10025 /* SessionGrouping.swift in Sources */,
+				A10031 /* WebMessage.swift in Sources */,
+				A10032 /* WebSession.swift in Sources */,
+				A10033 /* PairingManager.swift in Sources */,
+				A10034 /* WebRemoteServer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

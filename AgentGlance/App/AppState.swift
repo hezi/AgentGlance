@@ -15,6 +15,8 @@ final class AppState {
     let sleepManager = SleepManager()
     let notificationManager = NotificationManager()
     let hookConfigWatcher = HookConfigWatcher()
+    let pairingManager = PairingManager()
+    var webRemoteServer: WebRemoteServer?
 
     var sleepPreventionEnabled: Bool {
         didSet {
@@ -123,6 +125,11 @@ final class AppState {
         observeScreenModeChanges()
         sessionManager.startLivenessChecks()
 
+        // Start web remote server if enabled
+        if UserDefaults.standard.bool(forKey: Constants.UserDefaultsKeys.localRemoteEnabled) {
+            toggleWebRemote(enabled: true)
+        }
+
         // First launch: show onboarding and request permissions
         if !UserDefaults.standard.bool(forKey: Constants.UserDefaultsKeys.hasCompletedOnboarding) {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
@@ -139,6 +146,10 @@ final class AppState {
     private func setupBindings() {
         hookServer.onEvent = { [weak self] payload in
             self?.sessionManager.handleEvent(payload)
+            // Broadcast session update to web remote clients
+            if let self, let session = self.sessionManager.sessions[payload.session_id] {
+                self.webRemoteServer?.broadcastSessionUpdate(session)
+            }
         }
 
         sessionManager.onStalePendingDecisions = { [weak self] sessionId in
@@ -159,6 +170,10 @@ final class AppState {
                 session.pendingToolSummary = nil
                 if !allowed { session.currentTool = nil }
             }
+
+            // Notify web remote clients
+            webRemoteServer?.broadcastDecisionResolved(sessionId)
+            webRemoteServer?.broadcastSessionUpdate(session)
         }
 
         sessionManager.onStateChange = { [weak self] session, newState in
@@ -188,6 +203,9 @@ final class AppState {
 
             updateSleepPrevention()
             updateNotchVisibility()
+
+            // Broadcast state change to web remote clients
+            webRemoteServer?.broadcastSessionUpdate(session)
         }
     }
 
@@ -290,6 +308,25 @@ final class AppState {
             errorAlert.informativeText = "Please move AgentGlance.app to /Applications manually.\n\nError: \(error.localizedDescription)"
             errorAlert.alertStyle = .warning
             errorAlert.runModal()
+        }
+    }
+
+    // MARK: - Web Remote
+
+    func toggleWebRemote(enabled: Bool) {
+        UserDefaults.standard.set(enabled, forKey: Constants.UserDefaultsKeys.localRemoteEnabled)
+        if enabled {
+            if webRemoteServer == nil {
+                webRemoteServer = WebRemoteServer(
+                    hookServer: hookServer,
+                    sessionManager: sessionManager,
+                    pairingManager: pairingManager
+                )
+            }
+            webRemoteServer?.start()
+        } else {
+            webRemoteServer?.stop()
+            webRemoteServer = nil
         }
     }
 
@@ -812,14 +849,14 @@ final class AppState {
 
         let view = SettingsView(appState: self, updater: updater)
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 580, height: 360),
+            contentRect: NSRect(x: 0, y: 0, width: 700, height: 360),
             styleMask: [.titled, .closable, .resizable, .miniaturizable],
             backing: .buffered,
             defer: false
         )
         window.title = "AgentGlance Settings"
         window.isReleasedWhenClosed = false
-        window.minSize = NSSize(width: 480, height: 300)
+        window.minSize = NSSize(width: 600, height: 300)
         window.appearance = AppearanceHelper.nsAppearance()
         window.contentView = NSHostingView(rootView: view)
         window.center()
