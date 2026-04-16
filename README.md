@@ -23,9 +23,13 @@
 - **Live session status** in a floating overlay — see what your agents are doing at a glance
 - **Approve or deny** tool use directly from the overlay, with inline diffs for file edits
 - **Answer questions** and **review plans** without switching to the terminal
+- **Web remote** — monitor sessions and approve tools from your phone over local network
+- **Model & token tracking** — see which model and token usage per session
+- **Display templates** — customize what each session row shows with configurable tokens
 - **Keyboard navigation** — global hotkey to open, arrow/number keys to act
 - **Jump to terminal** — one click to the right tab (Ghostty, Terminal, iTerm, Kitty, Warp)
 - **Session grouping** — organize by project or status with collapsible headers
+- **Sleep prevention** — keeps your Mac awake while agents are working
 - **Snap-to-position** — drag the overlay anywhere, snaps to edges and corners
 - **Auto-updates** — get notified when a new version is available
 
