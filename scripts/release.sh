@@ -280,7 +280,14 @@ else
     warn "appcast.xml not found at $APPCAST_PATH — skipping Sparkle appcast update"
 fi
 
-# Step 7: Upload to GitHub (if --upload)
+# Step 7: Update download link on website
+WEBSITE_PATH="docs/index.html"
+if [ -f "$WEBSITE_PATH" ]; then
+    sed -i '' "s|https://github.com/hezi/AgentGlance/releases/download/v[^\"]*|https://github.com/hezi/AgentGlance/releases/download/v${VERSION}/AgentGlance-v${VERSION}.zip|" "$WEBSITE_PATH"
+    info "Updated download link in $WEBSITE_PATH to v${VERSION}"
+fi
+
+# Step 8: Upload to GitHub (if --upload)
 if $UPLOAD; then
     if ! command -v gh &>/dev/null; then
         error "gh CLI not found. Install with: brew install gh"
@@ -298,7 +305,7 @@ if $UPLOAD; then
     info "Release published: https://github.com/hezi/AgentGlance/releases/tag/$TAG"
 
     # Commit and push the updated appcast + release notes
-    git add "$APPCAST_PATH" "docs/releasenotes/" 2>/dev/null
+    git add "$APPCAST_PATH" "docs/releasenotes/" "$WEBSITE_PATH" 2>/dev/null
     if ! git diff --cached --quiet 2>/dev/null; then
         info "Committing appcast and release notes..."
         git commit -m "Update appcast and release notes for v${VERSION}"
